@@ -17,8 +17,10 @@ TripSmith is a Next.js 15 AI travel planning app with a cinematic dark theme, fe
 **Implemented Features:**
 
 - ✅ **Feature 1: Auto-Save Trips** - Real-time chat history + structured itinerary data
+- ✅ **Feature 1.5: JSON-Only Itinerary System** - Jitter-free custom rendering with beautiful cards
 - ✅ User authentication via GitHub OAuth
-- ✅ Hybrid AI responses (markdown for UX + JSON for features)
+- ✅ JSON-only responses for complete itineraries (eliminates streaming table jitter)
+- ✅ Custom ItineraryRenderer component with color-coded sections
 - ✅ Trip creation and database persistence
 
 **Next Features:**
@@ -30,9 +32,83 @@ TripSmith is a Next.js 15 AI travel planning app with a cinematic dark theme, fe
 
 ## Architecture & Critical Patterns
 
-### Hybrid AI Response System
+### JSON-Only Itinerary System (NEW - Sept 10, 2025)
 
-**AI returns both formats simultaneously:**
+**Problem Solved:** Eliminated jittery table rendering during AI streaming responses.
+
+**Solution Architecture:**
+
+- **Conversations**: Standard markdown streaming for natural chat flow
+- **Complete Itineraries**: JSON-only responses processed by custom renderer
+- **No Raw JSON Display**: Users only see beautiful rendered components
+
+**AI Response Format for Itineraries:**
+
+```json
+{
+  "tripHeader": {
+    "travelerName": "Tim Benniks",
+    "destination": "Tokyo, Japan",
+    "dates": "March 15-22, 2025",
+    "purpose": "Business Conference"
+  },
+  "flights": [
+    {
+      "date": "2025-03-15",
+      "departure": "08:00 - Amsterdam (AMS)",
+      "arrival": "15:30+1 - Tokyo (NRT)",
+      "flightNumber": "KL 861",
+      "airline": "KLM"
+    }
+  ],
+  "accommodation": [
+    {
+      "property": "Hotel Gracery Shinjuku",
+      "checkIn": "March 15",
+      "checkOut": "March 22",
+      "roomType": "Deluxe Room"
+    }
+  ],
+  "dailySchedule": [
+    {
+      "date": "March 16",
+      "activities": [
+        {
+          "time": "09:00",
+          "activity": "Conference Registration",
+          "location": "Tokyo International Forum"
+        }
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "category": "Local Cuisine",
+      "items": ["Tsukiji Outer Market", "Ramen Street"]
+    }
+  ]
+}
+```
+
+**Processing Flow:**
+
+1. AI generates JSON-only response for complete itineraries
+2. Chat interface detects JSON content with `extractItineraryData()`
+3. JSON parsed and stored in message `itineraryData` property
+4. `ItineraryRenderer` component creates beautiful card-based display
+5. Raw JSON content hidden from user interface
+6. Enhanced loading animation: "Creating your perfect itinerary..."
+
+**Key Components:**
+
+- `components/itinerary-renderer.tsx` - Custom renderer with color-coded sections
+- Enhanced `chat-interface.tsx` - JSON detection and parsing logic
+- Updated `message-bubble.tsx` - Conditional rendering (JSON vs markdown)
+- Modified `app/api/chat/route.ts` - Clear JSON-only format instructions
+
+### Legacy Hybrid AI Response System (DEPRECATED)
+
+**Previous approach - kept for reference:**
 
 ```json
 {

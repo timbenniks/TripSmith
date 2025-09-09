@@ -155,7 +155,7 @@ Use this context to provide relevant, personalized recommendations.` : ''}`;
     console.log('Calling OpenAI with system prompt length:', systemPrompt.length);
 
     const result = await streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-4.1'),
       messages,
       system: systemPrompt,
     });
