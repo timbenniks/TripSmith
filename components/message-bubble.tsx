@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
+import { ItineraryRenderer } from "@/components/itinerary-renderer";
 
 // Process markdown content with table conversion
 function processMarkdownContent(content: string) {
@@ -182,6 +183,8 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  itineraryData?: any; // For structured itinerary data
+  isItinerary?: boolean; // Flag to indicate this is a rendered itinerary
 }
 
 interface MessageBubbleProps {
@@ -241,7 +244,14 @@ export function MessageBubble({
         {message.role === "assistant" ? (
           <div className="space-y-3">
             <div className="max-w-none text-white">
-              <MarkdownWithTables content={message.content} />
+              {message.isItinerary && message.itineraryData ? (
+                <div className="space-y-4">
+                  {/* Only render the beautiful itinerary - hide the raw JSON */}
+                  <ItineraryRenderer data={message.itineraryData} />
+                </div>
+              ) : (
+                <MarkdownWithTables content={message.content} />
+              )}
             </div>
             <div className="flex items-center gap-2 pt-2 border-t border-white/20">
               <Button

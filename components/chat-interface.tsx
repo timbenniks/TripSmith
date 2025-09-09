@@ -23,9 +23,42 @@ import { exportToPDF, testPDFLibraries } from "@/lib/pdf-utils";
 import { tripService } from "@/lib/trip-service";
 import { useAuth } from "@/components/auth-provider";
 import { AuthModal } from "@/components/auth-modal";
+import { ItineraryRenderer } from "@/components/itinerary-renderer";
 
 interface ChatInterfaceProps {
   tripDetails?: TripDetails;
+}
+
+// Simple function to detect and extract JSON itinerary data
+function extractItineraryData(content: string): {
+  hasItinerary: boolean;
+  itineraryData?: any;
+  displayContent: string;
+} {
+  const jsonMatch = content.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+
+  if (jsonMatch) {
+    try {
+      const jsonData = JSON.parse(jsonMatch[1]);
+      if (jsonData.type === "complete_itinerary") {
+        // This is an itinerary - hide the JSON and return the data
+        const beforeJson = content.substring(0, content.indexOf("```json"));
+        return {
+          hasItinerary: true,
+          itineraryData: jsonData,
+          displayContent:
+            beforeJson.trim() || "Here's your complete itinerary:",
+        };
+      }
+    } catch (e) {
+      console.log("Failed to parse JSON:", e);
+    }
+  }
+
+  return {
+    hasItinerary: false,
+    displayContent: content,
+  };
 }
 
 export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
@@ -144,7 +177,7 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
 
       setMessages((prev) => [...prev, assistantMessageObj]);
 
-      // Handle streaming response
+      // Handle streaming response - simpler approach for JSON detection
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -153,17 +186,62 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
 
         if (chunk) {
           assistantMessage += chunk;
+
+          // For streaming, only show content if it doesn't contain JSON blocks
+          let displayContent = assistantMessage;
+          if (assistantMessage.includes("```json")) {
+            const jsonStart = assistantMessage.indexOf("```json");
+            // Only show content before JSON block during streaming
+            displayContent = assistantMessage.substring(0, jsonStart).trim();
+          }
+
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageObj.id
-                ? { ...msg, content: assistantMessage }
+                ? { ...msg, content: displayContent }
                 : msg
             )
           );
         }
       }
 
-      // After streaming is complete, check if response is hybrid JSON format
+      // After streaming is complete, check for itinerary data
+      const itineraryResult = extractItineraryData(assistantMessage);
+
+      if (itineraryResult.hasItinerary) {
+        // This is an itinerary response - create a special message with the data
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageObj.id
+              ? {
+                  ...msg,
+                  content: itineraryResult.displayContent,
+                  itineraryData: itineraryResult.itineraryData,
+                  isItinerary: true,
+                }
+              : msg
+          )
+        );
+
+        // Save structured data to database
+        if (currentTripId) {
+          await tripService.updateTripItineraryData(
+            currentTripId,
+            itineraryResult.itineraryData
+          );
+        }
+      } else {
+        // Regular response - show final content
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageObj.id
+              ? { ...msg, content: assistantMessage }
+              : msg
+          )
+        );
+      }
+
+      // Legacy handling for old hybrid format (can be removed later)
       let structuredData: any = null;
       let displayContent = assistantMessage;
 
@@ -200,6 +278,15 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
         // If JSON parsing fails, just show the original response
         displayContent = assistantMessage;
       }
+
+      // After streaming is complete, show the full content (including any buffered tables)
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageObj.id
+            ? { ...msg, content: displayContent }
+            : msg
+        )
+      );
 
       // Save the complete conversation to database
       console.log("Attempting to save messages. currentTripId:", currentTripId);
@@ -458,12 +545,20 @@ Please welcome me and let me know how you can help with my trip planning.`;
                     animate={{ opacity: 1, y: 0 }}
                     className="flex justify-start"
                   >
-                    <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-4 text-white shadow-2xl ring-1 ring-white/20">
-                      <div className="flex items-center space-x-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-                        <span className="text-sm text-white/80">
-                          TripSmith is planning your trip...
-                        </span>
+                    <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
+                      <div className="flex items-center space-x-3">
+                        <div className="relative">
+                          <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
+                          <div className="absolute -inset-1 rounded-full bg-purple-400/20 animate-pulse"></div>
+                        </div>
+                        <div>
+                          <div className="text-base font-medium text-white">
+                            Creating your perfect itinerary...
+                          </div>
+                          <div className="text-sm text-purple-300/80">
+                            Finding flights, hotels, and activities ✈️
+                          </div>
+                        </div>
                       </div>
                     </Card>
                   </motion.div>

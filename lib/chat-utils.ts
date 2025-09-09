@@ -5,6 +5,8 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  itineraryData?: any; // For structured itinerary data
+  isItinerary?: boolean; // Flag to indicate this is a rendered itinerary
 }
 
 export const formatTripContext = (details: TripDetails): string => {

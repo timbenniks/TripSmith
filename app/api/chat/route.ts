@@ -51,61 +51,83 @@ Your approach is:
 6. If there are still open questions, do not yet render the itinerary
 7. When itinerary is ready, automatically generate final itinerary in HYBRID FORMAT
 
-**CRITICAL: HYBRID RESPONSE FORMAT**
-When you generate a COMPLETE TRIP ITINERARY (meaning you have all necessary details and are providing the final comprehensive travel plan), you MUST respond with valid JSON wrapped in a code block using this EXACT format:
+**CRITICAL: STRUCTURED JSON RESPONSE FORMAT**
+When you generate a COMPLETE TRIP ITINERARY (meaning you have all necessary details and are providing the final comprehensive travel plan), respond with ONLY structured JSON data wrapped in a code block - NO MARKDOWN, NO EXPLANATORY TEXT, JUST THE JSON:
 
 \`\`\`json
 {
-  "markdown": "# Complete Trip Itinerary\\n\\n## Trip Overview\\n**Traveler:** Tim Benniks\\n**Destination:** London, UK\\n**Dates:** Sep 9-12, 2025\\n**Last Updated:** 2025-09-09T16:30:00Z\\n\\n## Flight Schedule\\n| Date | Flight | Route | Departure | Arrival | Terminal |\\n|------|--------|-------|-----------|---------|----------|\\n| Sep 9 | BA 374 | TLS-LHR | 11:10 CET | 12:05 BST | T5 |\\n| Sep 12 | BA 373 | LHR-TLS | 07:35 BST | 10:30 CET | T5 |\\n\\n## Accommodation\\n| Property | Address | Check-in | Check-out |\\n|----------|---------|----------|-----------|\\n| The Hoxton Shoreditch | 81 Great Eastern St, London EC2A 3HU | Sep 9 PM | Sep 12 noon |\\n\\n## Daily Schedule\\n| Date | Time | Activity | Location | Notes |\\n|------|------|----------|----------|-------|\\n| Sep 10 | 08:00-13:00 | Rehearsals | EartH Hackney | Conference prep |\\n| Sep 10 | 14:00-19:00 | Partner Day | 1901 Wine Lounge | Networking event |\\n| Sep 11 | 08:00-19:00 | ContentCon | EartH Hackney | Main conference |\\n| Sep 12 | Morning | Check-out & travel | Hotel to LHR | Departure day |",
-  "structured": {
-    "tripHeader": {
-      "travelerName": "Tim Benniks",
-      "destination": "London, UK",
-      "dates": "Sep 9-12, 2025",
-      "lastUpdated": "2025-09-09T16:30:00Z"
+  "type": "complete_itinerary",
+  "tripHeader": {
+    "travelerName": "Tim Benniks",
+    "destination": "London, UK",
+    "dates": "Sep 9-12, 2025",
+    "purpose": "ContentCon conference",
+    "lastUpdated": "2025-09-09T16:30:00Z"
+  },
+  "flights": [
+    {
+      "date": "2025-09-09",
+      "flightNumber": "BA 374",
+      "route": {"from": "TLS", "to": "LHR"},
+      "departure": "11:10 CET",
+      "arrival": "12:05 BST",
+      "terminal": "T5"
     },
-    "flights": [
+    {
+      "date": "2025-09-12",
+      "flightNumber": "BA 373", 
+      "route": {"from": "LHR", "to": "TLS"},
+      "departure": "07:35 BST",
+      "arrival": "10:30 CET",
+      "terminal": "T5"
+    }
+  ],
+  "accommodation": [
+    {
+      "property": "The Hoxton Shoreditch",
+      "address": "81 Great Eastern St, London EC2A 3HU",
+      "checkIn": "Sep 9 PM",
+      "checkOut": "Sep 12 noon",
+      "bookingReference": "HX123456"
+    }
+  ],
+  "dailySchedule": [
+    {
+      "date": "2025-09-10",
+      "time": "08:00-13:00",
+      "activity": "Rehearsals",
+      "location": "EartH Hackney",
+      "notes": "Conference prep"
+    },
+    {
+      "date": "2025-09-10", 
+      "time": "14:00-19:00",
+      "activity": "Partner Day",
+      "location": "1901 Wine Lounge",
+      "notes": "Networking event"
+    },
+    {
+      "date": "2025-09-11",
+      "time": "08:00-19:00", 
+      "activity": "ContentCon",
+      "location": "EartH Hackney",
+      "notes": "Main conference"
+    }
+  ],
+  "recommendations": {
+    "restaurants": [
       {
-        "date": "2025-09-09",
-        "flightNumber": "BA 374",
-        "route": {"from": "TLS", "to": "LHR"},
-        "departure": "11:10 CET",
-        "arrival": "12:05 BST"
-      },
-      {
-        "date": "2025-09-12",
-        "flightNumber": "BA 373", 
-        "route": {"from": "LHR", "to": "TLS"},
-        "departure": "07:35 BST",
-        "arrival": "10:30 CET"
+        "name": "Dishoom Shoreditch",
+        "cuisine": "Indian",
+        "priceRange": "££",
+        "location": "Near hotel"
       }
     ],
-    "accommodation": [
+    "transportation": [
       {
-        "property": "The Hoxton Shoreditch",
-        "address": "81 Great Eastern St, London EC2A 3HU",
-        "checkIn": "Sep 9 PM",
-        "checkOut": "Sep 12 noon"
-      }
-    ],
-    "dailySchedule": [
-      {
-        "date": "2025-09-10",
-        "time": "08:00-13:00",
-        "activity": "Rehearsals",
-        "location": "EartH Hackney"
-      },
-      {
-        "date": "2025-09-10", 
-        "time": "14:00-19:00",
-        "activity": "Partner Day",
-        "location": "1901 Wine Lounge"
-      },
-      {
-        "date": "2025-09-11",
-        "time": "08:00-19:00", 
-        "activity": "ContentCon",
-        "location": "EartH Hackney"
+        "type": "Oyster Card",
+        "cost": "£15/day",
+        "notes": "For Underground and buses"
       }
     ]
   }
@@ -113,60 +135,39 @@ When you generate a COMPLETE TRIP ITINERARY (meaning you have all necessary deta
 \`\`\`
 
 **IMPORTANT RULES:**
-1. ONLY use this JSON format when providing a COMPLETE, FINAL trip itinerary
-2. For all other responses (questions, clarifications), respond in normal markdown
-3. Keep the JSON concise but complete
-4. Make sure both markdown and structured sections have the same information
-5. Never return partial JSON - only when the itinerary is 100% complete
+1. For questions, clarifications, and partial responses: Use normal conversational markdown
+2. For COMPLETE FINAL ITINERARIES only: Use ONLY the structured JSON format above - no markdown, no explanatory text
+3. Include all relevant details in the JSON structure
+4. The JSON will be used to render a beautiful itinerary interface
+5. Never mix markdown and JSON for itineraries - JSON responses should contain ONLY the JSON block
+6. When providing a complete itinerary, start immediately with the JSON code block and nothing else
 
-**Markdown Itinerary Structure:**
-1. **Trip Header** — traveler name (optional), destination, dates, timestamp of last update
-2. **Flight Schedule** — Present as a table with columns: Date | Flight | Route | Departure | Arrival | Terminal | Links. Include **Google Flights links** for flight numbers. Use **[Flight number needed]** placeholders when missing
-3. **Accommodation** — Present as a table with columns: Property | Address | Check-in | Check-out | Contact | Links. Include **Google Maps links** for addresses
-4. **Ground Transport Plans** — Present as a table with columns: Route | Primary Option | Estimated Time | Fallback Option | Notes. Apply buffers: +20% ride-hail, +15% metro; +15-30 min for rush hours
-5. **Daily Schedule** — Present as a table with columns: Time | Activity/Event | Location | Duration | Travel Buffer | Notes. Include meetings, meals, work blocks with travel buffers between venues
-6. **Expense Overview** — Present as a table with columns: Category | Estimated Cost | Notes | Tips. Include conservative costs, surge windows, tipping norms
-7. **Helpful Notes** — Present as a table with columns: Category | Information | Tips. Include airport tips, neighborhood safety, weather, clearly labeled placeholders
+${tripDetails ? `
 
-**Timing Buffers:** 90 min domestic flights or flights within Europe, 180 min intercontinental flights; +20% ride-hail, +15% metro; +15-30 min rush hours
-**Linking Rules:** Flight numbers → Google Flights; Venues/addresses → Google Maps; Never invent details
-**Timezone Helpers:** Show local vs. home time for flights and first-day events (e.g., "08:30 (NYC 03:30)")
-**Expense Guidance:** Conservative costs, surge windows, tipping norms, per-diem tracking if budget shared
+**CURRENT TRIP CONTEXT:**
+- Destination: ${tripDetails.destination}
+- Travel Dates: ${tripDetails.travelDates}
+- Purpose: ${tripDetails.purpose}
+- Home Timezone: ${tripDetails.timezone}
 
-For regular conversational responses (not final itineraries), respond normally in markdown. Only use the JSON hybrid format when generating complete trip itineraries.
+Use this context to provide relevant, personalized recommendations.` : ''}`;
 
-${tripDetails ? `Current trip context:
-        ${Object.entries(tripDetails)
-          .filter(([_, value]) => value && typeof value === 'string' && value.trim() !== '')
-          .map(([key, value]) => {
-            const label = key === 'destination' ? 'Destination' :
-              key === 'travelDates' ? 'Travel Dates' :
-                key === 'purpose' ? 'Trip Purpose' :
-                  key === 'timezone' ? 'Home Timezone' : key;
-            return `${label}: ${value}`;
-          })
-          .join('\n')}` : ''}Maintain the helpful, professional tone that travelers expect from a premium travel planning service. Remember: use normal markdown for questions and discussions, but switch to the JSON hybrid format only when delivering a complete, final itinerary.`;
-
-    console.log('Creating OpenAI stream...');
+    console.log('Calling OpenAI with system prompt length:', systemPrompt.length);
 
     const result = await streamText({
-      model: openai('gpt-4.1'),
-      system: systemPrompt,
+      model: openai('gpt-4o'),
       messages,
+      system: systemPrompt,
     });
 
-    console.log('Stream created successfully');
-
+    console.log('OpenAI response received, starting stream');
     return result.toTextStreamResponse();
+
   } catch (error) {
     console.error('Chat API error:', error);
-
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return Response.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
