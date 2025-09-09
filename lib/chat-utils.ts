@@ -14,7 +14,6 @@ export const formatTripContext = (details: TripDetails): string => {
   if (filledDetails.length === 0) return "";
 
   const contextParts = [];
-  if (details.name) contextParts.push(`Traveler: ${details.name}`);
   if (details.destination) contextParts.push(`Destination: ${details.destination}`);
   if (details.travelDates) contextParts.push(`Dates: ${details.travelDates}`);
   if (details.purpose) contextParts.push(`Purpose: ${details.purpose}`);
@@ -29,11 +28,10 @@ export const generateWelcomeMessage = (formData: TripDetails): Message => {
   return {
     id: Date.now().toString(),
     role: "assistant",
-    content: `# Welcome${formData.name ? `, ${formData.name}` : ""}! 
+    content: `# Welcome! 
 
-I've received your trip details and I'm ready to help you plan your business trip${
-      formData.destination ? ` to ${formData.destination}` : ""
-    }. 
+I've received your trip details and I'm ready to help you plan your business trip${formData.destination ? ` to ${formData.destination}` : ""
+      }. 
 
 What would you like me to help you with? I can create detailed itineraries, recommend hotels, suggest restaurants, plan transportation, or answer any travel-related questions you have.`,
     timestamp: new Date(),
@@ -45,11 +43,10 @@ export const generateItineraryResponse = (formData: TripDetails): Message => {
     (value) => value.trim() !== ""
   );
 
-  let responseContent = `# Your Business Trip Itinerary${
-    formData.destination ? ` - ${formData.destination}` : ""
-  }
+  let responseContent = `# Your Business Trip Itinerary${formData.destination ? ` - ${formData.destination}` : ""
+    }
 
-Thank you for your inquiry${formData.name ? `, ${formData.name}` : ""}! `;
+Thank you for your inquiry! `;
 
   if (hasDetails) {
     responseContent += `Based on your trip details, here's a personalized travel plan:
@@ -78,14 +75,12 @@ Thank you for your inquiry${formData.name ? `, ${formData.name}` : ""}! `;
 - **6:00 PM**: Networking event
 
 ## Recommendations
-- **Hotels**: Business-friendly accommodations near your venue in ${
-        formData.destination || "the area"
+- **Hotels**: Business-friendly accommodations near your venue in ${formData.destination || "the area"
       }
 - **Restaurants**: Professional dining options for client meetings
-- **Transportation**: Efficient routes between locations${
-        formData.timezone
-          ? ` (considering your ${formData.timezone} timezone)`
-          : ""
+- **Transportation**: Efficient routes between locations${formData.timezone
+        ? ` (considering your ${formData.timezone} timezone)`
+        : ""
       }
 
 *This itinerary is customized based on your specific travel preferences and business needs.*`;

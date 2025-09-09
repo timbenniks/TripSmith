@@ -2,42 +2,16 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { AuthModal } from "@/components/auth-modal";
 import { Button } from "@/components/ui/button";
 import { User, LogOut, Settings, History } from "lucide-react";
 
 export function UserMenu() {
   const { user, loading, signOut } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="fixed top-4 right-4 z-40">
-        <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <>
-        <div className="fixed top-4 right-4 z-40">
-          <Button
-            onClick={() => setIsAuthModalOpen(true)}
-            className="bg-black/20 backdrop-blur-2xl border-white/30 text-white hover:bg-white/10 shadow-2xl ring-1 ring-white/20"
-          >
-            <User className="w-4 h-4 mr-2" />
-            Sign In
-          </Button>
-        </div>
-
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-        />
-      </>
-    );
+  // Only show when authenticated
+  if (loading || !user) {
+    return null;
   }
 
   return (

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 import { TripDetails } from '@/components/trip-form';
+import { StructuredItinerary } from '@/lib/types';
 
 export interface Message {
   id: string;
@@ -22,6 +23,7 @@ export interface Trip {
   purpose: string;
   status: 'planning' | 'booked' | 'completed';
   chat_history: Message[];
+  itinerary_data?: StructuredItinerary;
   preferences: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -47,7 +49,7 @@ export class TripService {
         .from('trips')
         .insert({
           user_id: user.id,
-          name: tripData.name || `Trip to ${tripData.destination}`,
+          name: user.user_metadata?.full_name || user.email || `Trip to ${tripData.destination}`,
           destination: tripData.destination,
           travel_dates,
           purpose: tripData.purpose,
@@ -139,6 +141,32 @@ export class TripService {
       return true;
     } catch (error) {
       console.error('Error in updateTripStatus:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update trip itinerary data with structured information
+   */
+  async updateTripItineraryData(tripId: string, itineraryData: StructuredItinerary): Promise<boolean> {
+    try {
+      const { error } = await this.supabaseClient
+        .from('trips')
+        .update({
+          itinerary_data: itineraryData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tripId);
+
+      if (error) {
+        console.error('Error updating trip itinerary data:', error);
+        return false;
+      }
+
+      console.log('Successfully updated trip itinerary data for trip:', tripId);
+      return true;
+    } catch (error) {
+      console.error('Error in updateTripItineraryData:', error);
       return false;
     }
   }

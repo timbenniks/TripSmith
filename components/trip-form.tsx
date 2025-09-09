@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import Image from "next/image";
-import { User, Clock, MapPin, CalendarIcon, Briefcase, Loader2 } from "lucide-react";
+import { Clock, MapPin, CalendarIcon, Briefcase, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,6 @@ import { useAuth } from "@/components/auth-provider";
 import { tripService } from "@/lib/trip-service";
 
 export interface TripDetails {
-  name: string;
   timezone: string;
   destination: string;
   travelDates: string;
@@ -33,7 +32,6 @@ interface TripFormProps {
 export function TripForm({ onSubmit }: TripFormProps) {
   const { user } = useAuth();
   const [formData, setFormData] = useState<TripDetails>({
-    name: "",
     timezone: "",
     destination: "",
     travelDates: "",
@@ -55,26 +53,26 @@ export function TripForm({ onSubmit }: TripFormProps) {
 
   const handleSubmit = async () => {
     if (!user) {
-      console.error('User not authenticated');
+      console.error("User not authenticated");
       return;
     }
 
     setIsCreatingTrip(true);
-    
+
     try {
       // Create trip in database
       const trip = await tripService.createTrip(user, formData);
-      
+
       if (trip) {
         // Pass both trip data and trip ID to parent
         onSubmit(formData, trip.id);
       } else {
-        console.error('Failed to create trip');
+        console.error("Failed to create trip");
         // Still allow them to continue without saving
         onSubmit(formData);
       }
     } catch (error) {
-      console.error('Error creating trip:', error);
+      console.error("Error creating trip:", error);
       // Still allow them to continue without saving
       onSubmit(formData);
     } finally {
@@ -113,29 +111,6 @@ export function TripForm({ onSubmit }: TripFormProps) {
         </h3>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <label
-              htmlFor="name-input"
-              className="flex items-center gap-2 text-sm font-medium text-white cursor-pointer"
-            >
-              <User className="h-4 w-4" />
-              Name
-            </label>
-            <Input
-              id="name-input"
-              name="name"
-              placeholder="Your name"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  name: e.target.value,
-                }))
-              }
-              className="bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:text-white/70 shadow-inner"
-            />
-          </div>
-
           <div className="space-y-2">
             <label
               htmlFor="destination-input"

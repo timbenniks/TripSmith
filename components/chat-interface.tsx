@@ -7,6 +7,8 @@ import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TripForm, type TripDetails } from "@/components/trip-form";
+import { TripService } from "@/lib/trip-service";
+import { HybridResponse } from "@/lib/types";
 import { MessageBubble } from "@/components/message-bubble";
 import { ChatInput } from "@/components/chat-input";
 import { AnimatedBackground } from "@/components/animated-background";
@@ -19,12 +21,15 @@ import {
 } from "@/lib/chat-utils";
 import { exportToPDF, testPDFLibraries } from "@/lib/pdf-utils";
 import { tripService } from "@/lib/trip-service";
+import { useAuth } from "@/components/auth-provider";
+import { AuthModal } from "@/components/auth-modal";
 
 interface ChatInterfaceProps {
   tripDetails?: TripDetails;
 }
 
 export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
+  const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +43,7 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
   });
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [showSavedIndicator, setShowSavedIndicator] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [windowDimensions, setWindowDimensions] = useState({
     width: 1200,
     height: 800,
@@ -139,7 +145,7 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
 
       setMessages((prev) => [...prev, assistantMessageObj]);
 
-      // Handle plain text streaming response
+      // Handle streaming response
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -158,18 +164,78 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
         }
       }
 
+      // After streaming is complete, check if response is hybrid JSON format
+      let structuredData: any = null;
+      let displayContent = assistantMessage;
+
+      try {
+        // Look for JSON blocks in the complete response
+        const jsonMatch = assistantMessage.match(
+          /```json\s*(\{[\s\S]*?\})\s*```/
+        );
+        if (jsonMatch) {
+          console.log("Found JSON block, attempting to parse...");
+          const jsonString = jsonMatch[1];
+          const hybridResponse: HybridResponse = JSON.parse(jsonString);
+
+          if (hybridResponse.markdown && hybridResponse.structured) {
+            console.log("Successfully parsed hybrid response");
+            displayContent = hybridResponse.markdown;
+            structuredData = hybridResponse.structured;
+
+            // Update the displayed message to show markdown instead of JSON
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageObj.id
+                  ? { ...msg, content: displayContent }
+                  : msg
+              )
+            );
+          }
+        }
+      } catch (jsonError) {
+        console.log(
+          "Response is not hybrid JSON format, treating as plain text:",
+          jsonError
+        );
+        // If JSON parsing fails, just show the original response
+        displayContent = assistantMessage;
+      }
+
       // Save the complete conversation to database
+      console.log("Attempting to save messages. currentTripId:", currentTripId);
       if (currentTripId) {
         const finalMessages = updatedMessages.concat({
           ...assistantMessageObj,
-          content: assistantMessage,
+          content: displayContent, // Save the markdown version
         });
-        const saved = await tripService.updateTripChatHistory(currentTripId, finalMessages);
-        
+        console.log(
+          "Saving messages to trip:",
+          currentTripId,
+          "Messages count:",
+          finalMessages.length
+        );
+        const saved = await tripService.updateTripChatHistory(
+          currentTripId,
+          finalMessages
+        );
+
+        // If we have structured data, save it separately
+        if (structuredData) {
+          console.log("Saving structured itinerary data...");
+          await tripService.updateTripItineraryData(
+            currentTripId,
+            structuredData
+          );
+        }
+
+        console.log("Messages saved successfully:", saved);
         if (saved) {
           setShowSavedIndicator(true);
           setTimeout(() => setShowSavedIndicator(false), 3000);
         }
+      } else {
+        console.log("No currentTripId - messages not saved");
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -293,7 +359,7 @@ Please welcome me and let me know how you can help with my trip planning.`;
                 className="w-full h-full object-cover"
               />
             </div>
-            
+
             {/* Trip saved indicator */}
             <AnimatePresence>
               {showSavedIndicator && (
@@ -311,41 +377,105 @@ Please welcome me and let me know how you can help with my trip planning.`;
         )}
         <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
           <div className="max-w-4xl mx-auto space-y-6 pb-6">
-            {showForm && <TripForm onSubmit={handleFormSubmit} />}
-
-            <AnimatePresence>
-              {messages.map((message: Message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  onCopy={copyToClipboard}
-                  onExport={exportItinerary}
-                  onExportPDF={exportItineraryAsPDF}
-                />
-              ))}
-            </AnimatePresence>
-
-            {isLoading && (
+            {/* Authentication Loading State */}
+            {loading && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start"
+                className="flex justify-center items-center min-h-[60vh]"
               >
-                <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-4 text-white shadow-2xl ring-1 ring-white/20">
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-                    <span className="text-sm text-white/80">
-                      TripSmith is planning your trip...
+                <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-8 text-white shadow-2xl ring-1 ring-white/20">
+                  <div className="flex flex-col items-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+                    <span className="text-lg text-white/80">
+                      Loading TripSmith...
                     </span>
                   </div>
                 </Card>
               </motion.div>
             )}
+
+            {/* Authentication Required State */}
+            {!loading && !user && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-center items-center min-h-[60vh]"
+              >
+                <div className="w-full max-w-md">
+                  <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-8 text-white shadow-2xl ring-1 ring-white/20 text-center">
+                    <div className="flex flex-col items-center space-y-6">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full mb-4 mx-auto overflow-hidden">
+                        <Image
+                          src="/images/tripsmith-logo.png"
+                          alt="TripSmith Logo"
+                          width={64}
+                          height={64}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <h2 className="text-2xl font-semibold text-white">
+                        Welcome to TripSmith
+                      </h2>
+                      <p className="text-white/80 leading-relaxed">
+                        AI-powered business trip planning. Sign in to start
+                        creating personalized itineraries.
+                      </p>
+
+                      {/* Inline Auth Form */}
+                      <div className="w-full">
+                        <AuthModal
+                          isOpen={true}
+                          onClose={() => {}}
+                          variant="inline"
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Main App Content - Only show when authenticated */}
+            {!loading && user && (
+              <>
+                {showForm && <TripForm onSubmit={handleFormSubmit} />}
+
+                <AnimatePresence>
+                  {messages.map((message: Message) => (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      onCopy={copyToClipboard}
+                      onExport={exportItinerary}
+                      onExportPDF={exportItineraryAsPDF}
+                    />
+                  ))}
+                </AnimatePresence>
+
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex justify-start"
+                  >
+                    <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-4 text-white shadow-2xl ring-1 ring-white/20">
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+                        <span className="text-sm text-white/80">
+                          TripSmith is planning your trip...
+                        </span>
+                      </div>
+                    </Card>
+                  </motion.div>
+                )}
+              </>
+            )}
           </div>
         </ScrollArea>
       </div>
 
-      {!showForm && (
+      {!loading && user && !showForm && (
         <ChatInput
           value={input}
           onChange={handleInputChange}
