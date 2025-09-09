@@ -18,6 +18,7 @@ import {
   type Message,
 } from "@/lib/chat-utils";
 import { exportToPDF, testPDFLibraries } from "@/lib/pdf-utils";
+import { tripService } from "@/lib/trip-service";
 
 interface ChatInterfaceProps {
   tripDetails?: TripDetails;
@@ -35,6 +36,8 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
     travelDates: "",
     purpose: "",
   });
+  const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [showSavedIndicator, setShowSavedIndicator] = useState(false);
   const [windowDimensions, setWindowDimensions] = useState({
     width: 1200,
     height: 800,
@@ -95,7 +98,8 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setIsLoading(true);
 
     try {
@@ -105,11 +109,12 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map((msg) => ({
+          messages: updatedMessages.map((msg) => ({
             role: msg.role,
             content: msg.content,
           })),
           tripDetails: formData,
+          tripId: currentTripId,
         }),
       });
 
@@ -152,6 +157,20 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
           );
         }
       }
+
+      // Save the complete conversation to database
+      if (currentTripId) {
+        const finalMessages = updatedMessages.concat({
+          ...assistantMessageObj,
+          content: assistantMessage,
+        });
+        const saved = await tripService.updateTripChatHistory(currentTripId, finalMessages);
+        
+        if (saved) {
+          setShowSavedIndicator(true);
+          setTimeout(() => setShowSavedIndicator(false), 3000);
+        }
+      }
     } catch (error) {
       console.error("Chat error:", error);
       const errorMessage: Message = {
@@ -167,8 +186,9 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
     }
   };
 
-  const handleFormSubmit = async (data: TripDetails) => {
+  const handleFormSubmit = async (data: TripDetails, tripId?: string) => {
     setFormData(data);
+    setCurrentTripId(tripId || null);
     setShowForm(false);
 
     // Send an initial message to get the welcome response from AI
@@ -273,6 +293,20 @@ Please welcome me and let me know how you can help with my trip planning.`;
                 className="w-full h-full object-cover"
               />
             </div>
+            
+            {/* Trip saved indicator */}
+            <AnimatePresence>
+              {showSavedIndicator && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: -10 }}
+                  className="absolute top-14 left-0 bg-green-500/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md border border-green-400/50 shadow-lg"
+                >
+                  ✓ Trip saved
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
         <ScrollArea className="h-full p-6" ref={scrollAreaRef}>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import Image from "next/image";
-import { User, Clock, MapPin, CalendarIcon, Briefcase } from "lucide-react";
+import { User, Clock, MapPin, CalendarIcon, Briefcase, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth-provider";
+import { tripService } from "@/lib/trip-service";
 
 export interface TripDetails {
   name: string;
@@ -25,10 +27,11 @@ export interface TripDetails {
 }
 
 interface TripFormProps {
-  onSubmit: (data: TripDetails) => void;
+  onSubmit: (data: TripDetails, tripId?: string) => void;
 }
 
 export function TripForm({ onSubmit }: TripFormProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<TripDetails>({
     name: "",
     timezone: "",
@@ -37,6 +40,7 @@ export function TripForm({ onSubmit }: TripFormProps) {
     purpose: "",
   });
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [isCreatingTrip, setIsCreatingTrip] = useState(false);
 
   // Update travel dates when date range changes
   useEffect(() => {
@@ -49,8 +53,33 @@ export function TripForm({ onSubmit }: TripFormProps) {
     }
   }, [dateRange]);
 
-  const handleSubmit = () => {
-    onSubmit(formData);
+  const handleSubmit = async () => {
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    setIsCreatingTrip(true);
+    
+    try {
+      // Create trip in database
+      const trip = await tripService.createTrip(user, formData);
+      
+      if (trip) {
+        // Pass both trip data and trip ID to parent
+        onSubmit(formData, trip.id);
+      } else {
+        console.error('Failed to create trip');
+        // Still allow them to continue without saving
+        onSubmit(formData);
+      }
+    } catch (error) {
+      console.error('Error creating trip:', error);
+      // Still allow them to continue without saving
+      onSubmit(formData);
+    } finally {
+      setIsCreatingTrip(false);
+    }
   };
 
   return (
@@ -226,10 +255,20 @@ export function TripForm({ onSubmit }: TripFormProps) {
 
           <Button
             onClick={handleSubmit}
-            className="w-full h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 backdrop-blur-sm border-purple-500/40 text-white font-medium shadow-lg hover:shadow-purple-500/25 transition-all duration-500 relative overflow-hidden group cursor-pointer mt-6"
+            disabled={isCreatingTrip}
+            className="w-full h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 backdrop-blur-sm border-purple-500/40 text-white font-medium shadow-lg hover:shadow-purple-500/25 transition-all duration-500 relative overflow-hidden group cursor-pointer mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-700 transform -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%]" />
-            Start Planning My Trip
+            {isCreatingTrip ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Trip...
+              </>
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-700 transform -skew-x-12 translate-x-[-200%] group-hover:translate-x-[200%]" />
+                Start Planning My Trip
+              </>
+            )}
           </Button>
         </div>
       </Card>

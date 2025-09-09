@@ -1,5 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -14,9 +16,31 @@ interface TripDetails {
 
 export async function POST(req: Request) {
   try {
-    const { messages, tripDetails } = await req.json() as {
+    // Create Supabase client with cookies
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+
+    const { messages, tripDetails, tripId } = await req.json() as {
       messages: any[],
-      tripDetails?: TripDetails
+      tripDetails?: TripDetails,
+      tripId?: string
     };
 
     // Create a system prompt that includes trip context
