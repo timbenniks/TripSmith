@@ -35,7 +35,6 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(true);
   const [formData, setFormData] = useState<TripDetails>({
-    name: "",
     timezone: "",
     destination: "",
     travelDates: "",
@@ -259,7 +258,7 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
 
     // Send an initial message to get the welcome response from AI
     const welcomePrompt = `Hello! I just filled out my trip details and I'm ready to start planning. Here are my details:
-- Name: ${data.name}
+- Name: ${user?.user_metadata?.full_name || user?.email || "Traveler"}
 - Destination: ${data.destination}
 - Travel Dates: ${data.travelDates}
 - Purpose: ${data.purpose}

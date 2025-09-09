@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-TripSmith is a Next.js 15 AI travel planning app with a cinematic dark theme, featuring an interactive 3D Earth globe and chat-based trip planning interface. The app uses React 19, Three.js for 3D visualizations, and streams responses via Vercel AI SDK.
+TripSmith is a Next.js 15 AI travel planning app with a cinematic dark theme, featuring an interactive 3D Earth globe and chat-based trip planning interface. The app uses React 19, Three.js for 3D visualizations, and streams responses via Vercel AI SDK with **hybrid AI response format** (markdown + structured JSON).
 
 ## Supabase Integration
 
@@ -14,14 +14,44 @@ TripSmith is a Next.js 15 AI travel planning app with a cinematic dark theme, fe
 - **Status**: ACTIVE_HEALTHY
 - **MCP**: Supabase MCP server available with 29 tools
 
-**Planned Features:**
+**Implemented Features:**
 
-- User authentication and accounts
-- Saved trips and trip history
-- User preferences and smart defaults
-- Trip sharing and collaboration
+- ✅ **Feature 1: Auto-Save Trips** - Real-time chat history + structured itinerary data
+- ✅ User authentication via GitHub OAuth
+- ✅ Hybrid AI responses (markdown for UX + JSON for features)
+- ✅ Trip creation and database persistence
+
+**Next Features:**
+
+- Feature 2: Trip History Dashboard
+- Feature 3: Smart Suggestions Engine
+- Feature 4: Calendar Integration
+- Feature 5: Collaborative Trip Planning
 
 ## Architecture & Critical Patterns
+
+### Hybrid AI Response System
+
+**AI returns both formats simultaneously:**
+
+```json
+{
+  "markdown": "# Complete Trip Itinerary\n\n## Flight Schedule...",
+  "structured": {
+    "tripHeader": { "travelerName": "...", "destination": "..." },
+    "flights": [{ "date": "2025-09-09", "flightNumber": "BA 374" }],
+    "accommodation": [{ "property": "The Hoxton Shoreditch" }],
+    "dailySchedule": [{ "time": "08:00", "activity": "Conference" }]
+  }
+}
+```
+
+**Processing Flow:**
+
+1. AI streams response → Chat interface parses for JSON blocks
+2. If hybrid JSON found → Extract markdown for display + structured data for DB
+3. Save markdown to `chat_history`, structured data to `itinerary_data` column
+4. Enables future features: calendar integration, budget tracking, analytics
 
 ### SSR Safety Requirements
 
@@ -42,15 +72,18 @@ useEffect(() => {
 ### Component Flow
 
 1. **Entry Point**: `app/page.tsx` → Dynamic import of `ChatInterface` (SSR disabled)
-2. **Form Flow**: `TripForm` collects `TripDetails` → triggers chat transition via `setShowForm(false)`
-3. **Chat Flow**: User messages → `app/api/chat/route.ts` → Streaming responses via `ai` SDK
-4. **3D Backdrop**: `EarthVisualization` → `EarthGlobe` (Three.js sphere with Earth texture)
+2. **Auth Flow**: GitHub OAuth → User redirected to chat → Trip form shows
+3. **Form Flow**: `TripForm` collects `TripDetails` (no name field - from auth) → creates trip record
+4. **Chat Flow**: User messages → `app/api/chat/route.ts` → GPT-4.1 hybrid responses
+5. **Data Flow**: Parse JSON → Save markdown to chat + structured to `itinerary_data`
+6. **3D Backdrop**: `EarthVisualization` → `EarthGlobe` (Three.js sphere with Earth texture)
 
 ### State Architecture
 
 - **No external state management** - local React state only
 - **Message format**: `{id: string, role: "user"|"assistant", content: string, timestamp: Date}`
-- **Trip data**: `{name, timezone, destination, travelDates, purpose}` collected once, used throughout chat
+- **Trip data**: `{timezone, destination, travelDates, purpose}` collected once, used throughout chat
+- **Trip ID**: Generated on trip creation, passed to all chat API calls for persistence
 - **Window dimensions** tracked for responsive 3D positioning
 
 ## Development Workflow
@@ -62,7 +95,9 @@ useEffect(() => {
 
 ### Core Dependencies & Patterns
 
-- **AI Streaming**: `@ai-sdk/openai` + `ai` package for streaming chat responses
+- **AI Streaming**: `@ai-sdk/openai` + `ai` package with GPT-4.1 for streaming chat responses
+- **Database**: Supabase with `TripService` class for all database operations
+- **Authentication**: GitHub OAuth via Supabase Auth
 - **3D Graphics**: `@react-three/fiber` + `@react-three/drei` (texture loading in `useEffect`)
 - **UI System**: shadcn/ui with custom OKLCH color variables in `app/globals.css`
 - **Animations**: `framer-motion` for all transitions (use `AnimatePresence` for chat messages)
