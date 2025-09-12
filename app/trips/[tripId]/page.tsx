@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { tripService, Trip } from "@/lib/trip-service";
-import { ChatInterface } from "@/components/chat-interface";
+import { MatureTripPage } from "@/components/trip-page/mature-trip-page";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -162,7 +162,7 @@ export default function TripPage() {
     return null; // This should never be reached due to the checks above, but just in case
   }
 
-  // Convert trip data to the format expected by ChatInterface
+  // Convert trip data to the format expected by MatureTripPage
   const tripDetails = {
     timezone: "",
     destination: trip.destination,
@@ -171,21 +171,10 @@ export default function TripPage() {
   };
 
   return (
-    <div className="h-screen bg-background text-foreground">
-      {/* Back to trips button - positioned below logo to avoid overlaps */}
-      <div className="absolute top-20 left-4 z-50">
-        <Button
-          onClick={handleBackToTrips}
-          variant="ghost"
-          size="sm"
-          className="bg-black/20 backdrop-blur-2xl border-white/30 text-white hover:bg-white/10 shadow-2xl ring-1 ring-white/20"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Trips
-        </Button>
-      </div>
-
-      <ChatInterface tripDetails={tripDetails} resumeTripId={tripId} />
-    </div>
+    <MatureTripPage
+      tripId={tripId}
+      initialTrip={trip}
+      tripDetails={tripDetails}
+    />
   );
 }
