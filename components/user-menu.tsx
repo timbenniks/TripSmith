@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { User, LogOut, Settings, History } from "lucide-react";
@@ -8,11 +9,17 @@ import { User, LogOut, Settings, History } from "lucide-react";
 export function UserMenu() {
   const { user, loading, signOut } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const router = useRouter();
 
   // Only show when authenticated
   if (loading || !user) {
     return null;
   }
+
+  const handleTripHistory = () => {
+    setIsUserMenuOpen(false);
+    router.push("/trips");
+  };
 
   return (
     <div className="fixed top-4 right-4 z-40">
@@ -38,7 +45,7 @@ export function UserMenu() {
           <>
             {/* Backdrop */}
             <div
-              className="fixed inset-0 z-[-1]"
+              className="fixed inset-0 z-[-1] cursor-pointer"
               onClick={() => setIsUserMenuOpen(false)}
             />
 
@@ -54,12 +61,15 @@ export function UserMenu() {
 
               {/* Menu Items */}
               <div className="py-1">
-                <button className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors">
+                <button
+                  onClick={handleTripHistory}
+                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer"
+                >
                   <History className="w-4 h-4" />
                   Trip History
                 </button>
 
-                <button className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors">
+                <button className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer">
                   <Settings className="w-4 h-4" />
                   Preferences
                 </button>
@@ -68,7 +78,7 @@ export function UserMenu() {
 
                 <button
                   onClick={signOut}
-                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors"
+                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out

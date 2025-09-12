@@ -146,7 +146,7 @@ function MarkdownWithTables({ content }: { content: string }) {
                 a: ({ href, children }) => (
                   <a
                     href={href}
-                    className="text-purple-300 hover:text-purple-200 underline"
+                    className="text-purple-300 hover:text-purple-200 underline cursor-pointer"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

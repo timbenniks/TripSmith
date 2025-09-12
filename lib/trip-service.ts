@@ -195,6 +195,92 @@ export class TripService {
   }
 
   /**
+   * Get trips with pagination and filtering
+   */
+  async getUserTripsWithFilters(
+    userId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      status?: 'planning' | 'booked' | 'completed';
+      searchQuery?: string;
+      sortBy?: 'updated_at' | 'created_at' | 'destination';
+      sortOrder?: 'asc' | 'desc';
+    } = {}
+  ): Promise<{ trips: Trip[]; totalCount: number }> {
+    try {
+      const {
+        limit = 50,
+        offset = 0,
+        status,
+        searchQuery,
+        sortBy = 'updated_at',
+        sortOrder = 'desc'
+      } = options;
+
+      let query = this.supabaseClient
+        .from('trips')
+        .select('*', { count: 'exact' })
+        .eq('user_id', userId);
+
+      // Apply status filter
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      // Apply search filter
+      if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,destination.ilike.%${searchQuery}%,purpose.ilike.%${searchQuery}%`);
+      }
+
+      // Apply sorting
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+      // Apply pagination
+      query = query.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await query;
+
+      if (error) {
+        console.error('Error fetching filtered trips:', error);
+        return { trips: [], totalCount: 0 };
+      }
+
+      return {
+        trips: data || [],
+        totalCount: count || 0
+      };
+    } catch (error) {
+      console.error('Error in getUserTripsWithFilters:', error);
+      return { trips: [], totalCount: 0 };
+    }
+  }
+
+  /**
+   * Search trips by destination or name
+   */
+  async searchUserTrips(userId: string, searchQuery: string): Promise<Trip[]> {
+    try {
+      const { data, error } = await this.supabaseClient
+        .from('trips')
+        .select('*')
+        .eq('user_id', userId)
+        .or(`name.ilike.%${searchQuery}%,destination.ilike.%${searchQuery}%,purpose.ilike.%${searchQuery}%`)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error searching trips:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error in searchUserTrips:', error);
+      return [];
+    }
+  }
+
+  /**
    * Update trip details
    */
   async updateTripDetails(tripId: string, updates: Partial<Omit<Trip, 'id' | 'user_id' | 'created_at'>>): Promise<boolean> {

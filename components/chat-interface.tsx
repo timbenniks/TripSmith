@@ -27,6 +27,7 @@ import { ItineraryRenderer } from "@/components/itinerary-renderer";
 
 interface ChatInterfaceProps {
   tripDetails?: TripDetails;
+  resumeTripId?: string | null;
 }
 
 // Simple function to detect and extract JSON itinerary data
@@ -61,12 +62,15 @@ function extractItineraryData(content: string): {
   };
 }
 
-export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
+export function ChatInterface({
+  tripDetails,
+  resumeTripId,
+}: ChatInterfaceProps) {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showForm, setShowForm] = useState(true);
+  const [showForm, setShowForm] = useState(!resumeTripId); // Hide form if resuming a trip
   const [formData, setFormData] = useState<TripDetails>({
     timezone: "",
     destination: "",
@@ -125,6 +129,56 @@ export function ChatInterface({ tripDetails }: ChatInterfaceProps) {
       }
     }
   }, [messages]);
+
+  // Effect to load trip when resumeTripId is provided
+  useEffect(() => {
+    const loadTrip = async () => {
+      if (resumeTripId && user && !loading) {
+        try {
+          console.log("Loading trip:", resumeTripId);
+          const trip = await tripService.getTripById(resumeTripId);
+
+          if (trip) {
+            // Set the trip details
+            setFormData({
+              timezone: "",
+              destination: trip.destination,
+              travelDates: trip.travel_dates?.formatted || "",
+              purpose: trip.purpose,
+            });
+
+            // Set current trip
+            setCurrentTripId(trip.id);
+
+            // Load chat history
+            if (trip.chat_history && trip.chat_history.length > 0) {
+              setMessages(trip.chat_history);
+            } else {
+              // If no chat history, start with welcome message
+              const welcomeMessage = generateWelcomeMessage({
+                timezone: "",
+                destination: trip.destination,
+                travelDates: trip.travel_dates?.formatted || "",
+                purpose: trip.purpose,
+              });
+              setMessages([welcomeMessage]);
+            }
+
+            // Hide the form since we're resuming
+            setShowForm(false);
+
+            console.log("Trip loaded successfully:", trip.name);
+          } else {
+            console.error("Trip not found:", resumeTripId);
+          }
+        } catch (error) {
+          console.error("Error loading trip:", error);
+        }
+      }
+    };
+
+    loadTrip();
+  }, [resumeTripId, user, loading]);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
