@@ -1,4 +1,6 @@
 import { extractItineraryData, hasCompleteItinerary, getPreJsonContent } from './itinerary-utils';
+import { UiDirectivesPayload } from './types';
+import { parseUiDirectives } from './ui-directives-utils';
 
 export interface Message {
   id: string;
@@ -8,6 +10,7 @@ export interface Message {
   itineraryData?: any;
   isItinerary?: boolean;
   isGeneratingItinerary?: boolean;
+  uiDirectives?: UiDirectivesPayload; // Parsed UI directives (not displayed in content)
 }
 
 export interface StreamingOptions {
@@ -27,7 +30,7 @@ export async function handleStreamingResponse(
   response: Response,
   messageId: string,
   options: StreamingOptions = {}
-): Promise<{ content: string; itineraryData?: any }> {
+): Promise<{ content: string; itineraryData?: any; uiDirectives?: UiDirectivesPayload }> {
   const {
     handleItineraryGeneration = false,
     onMessageUpdate,
@@ -79,6 +82,7 @@ export async function handleStreamingResponse(
   // Process final content for itinerary data
   let finalContent = assistantMessage;
   let itineraryData: any = undefined;
+  let uiDirectives: UiDirectivesPayload | undefined;
 
   if (handleItineraryGeneration) {
     const itineraryResult = extractItineraryData(assistantMessage);
@@ -88,12 +92,18 @@ export async function handleStreamingResponse(
     }
   }
 
+  // Parse & strip UI directives (non-final assistant control block)
+  const { cleanedContent, uiDirectives: parsed } = parseUiDirectives(finalContent);
+  finalContent = cleanedContent;
+  if (parsed) uiDirectives = parsed;
+
   // Notify completion
   onStreamComplete?.(messageId, finalContent, itineraryData);
 
   return {
     content: finalContent,
-    itineraryData
+    itineraryData,
+    uiDirectives
   };
 }
 

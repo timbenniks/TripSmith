@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { logError } from '@/lib/error-logger';
+import { logError } from "@/lib/error-logger";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Share2, Trash2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
-import { useDelayedIndicator } from '@/hooks/useDelayedIndicator';
+import { useDelayedIndicator } from "@/hooks/useDelayedIndicator";
 
 interface TripActionsHeaderProps {
   tripId: string;
@@ -47,7 +47,10 @@ export function TripActionsHeader({
       await onDelete();
     } catch (error) {
       console.error("Delete failed:", error);
-      logError(error, { source: 'TripActionsHeader', extra: { action: 'delete', tripId } });
+      logError(error, {
+        source: "TripActionsHeader",
+        extra: { action: "delete", tripId },
+      });
     } finally {
       setIsDeleteLoading(false);
     }
@@ -59,7 +62,10 @@ export function TripActionsHeader({
       await onDownloadPDF();
     } catch (error) {
       console.error("PDF download failed:", error);
-      logError(error, { source: 'TripActionsHeader', extra: { action: 'pdf', tripId } });
+      logError(error, {
+        source: "TripActionsHeader",
+        extra: { action: "pdf", tripId },
+      });
     } finally {
       setIsPDFLoading(false);
     }
@@ -84,7 +90,10 @@ export function TripActionsHeader({
       await onStatusChange(newStatus);
     } catch (err) {
       console.error("Failed to change status", err);
-      logError(err, { source: 'TripActionsHeader', extra: { action: 'status', from: localStatus, to: newStatus, tripId } });
+      logError(err, {
+        source: "TripActionsHeader",
+        extra: { action: "status", from: localStatus, to: newStatus, tripId },
+      });
       // revert optimistic change on error
       setLocalStatus(status);
     } finally {
@@ -158,7 +167,10 @@ export function TripActionsHeader({
               ▾
             </span>
             {showStatusDelay && (
-              <span className="absolute -bottom-4 left-0 text-[10px] text-white/40 flex items-center gap-1" aria-live="polite">
+              <span
+                className="absolute -bottom-4 left-0 text-[10px] text-white/40 flex items-center gap-1"
+                aria-live="polite"
+              >
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white/40" />
                 updating…
               </span>

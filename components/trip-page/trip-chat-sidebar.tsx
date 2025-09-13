@@ -7,6 +7,7 @@ import { MessageBubble } from "@/components/message-bubble";
 import { Message } from "@/lib/chat-utils";
 import { ChatInput } from "@/components/chat-input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SuggestionBubblesBar } from "@/components/suggestion-bubbles-bar";
 import { MessageSquare, Send } from "lucide-react";
 
 interface TripDetails {
@@ -24,6 +25,7 @@ interface TripChatSidebarProps {
   tripDetails: TripDetails;
   isLoading?: boolean;
   onSendMessage: (content: string) => Promise<void>;
+  currentItinerary?: any;
 }
 
 export function TripChatSidebar({
@@ -34,10 +36,12 @@ export function TripChatSidebar({
   tripDetails,
   isLoading = false,
   onSendMessage,
+  currentItinerary,
 }: TripChatSidebarProps) {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -134,8 +138,52 @@ export function TripChatSidebar({
         </ScrollArea>
       </div>
 
-      {/* Chat Input */}
+      {/* Chat Input & Suggestions */}
       <div className="flex-shrink-0 p-3 sm:p-4 border-t border-white/20">
+        <div className="mb-2">
+          <SuggestionBubblesBar
+            tripId={tripId}
+            destination={tripDetails.destination}
+            firstTravelDate={undefined}
+            daySpan={undefined}
+            itineraryData={currentItinerary}
+            aiDirectives={(() => {
+              // Get latest assistant message with uiDirectives
+              for (let i = messages.length - 1; i >= 0; i--) {
+                const m: any = messages[i];
+                if (m.role === "assistant" && m.uiDirectives)
+                  return m.uiDirectives;
+              }
+              return undefined;
+            })()}
+            onPrefillPrompt={(text) => {
+              // Insert or replace current selection with suggestion text (non-sending)
+              const existing = textareaRef.current?.value || "";
+              const prefix =
+                existing.trim().length > 0
+                  ? existing.replace(/\s+$/, "") + "\n"
+                  : "";
+              const nextVal = prefix + text;
+              setInput(nextVal);
+              requestAnimationFrame(() => {
+                if (textareaRef.current) {
+                  textareaRef.current.focus();
+                  // Place caret at end
+                  textareaRef.current.selectionStart =
+                    textareaRef.current.selectionEnd =
+                      textareaRef.current.value.length;
+                }
+              });
+            }}
+            onApplyPrompt={async (prompt) => {
+              try {
+                await onSendMessage(prompt);
+              } catch (e) {
+                console.error("Failed applying suggestion", e);
+              }
+            }}
+          />
+        </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="relative">
             <textarea
@@ -145,6 +193,7 @@ export function TripChatSidebar({
               className="w-full bg-black/20 backdrop-blur-xl border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder:placeholder-contrast focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px] text-sm"
               rows={2}
               disabled={isLoading}
+              ref={textareaRef}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
