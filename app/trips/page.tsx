@@ -2,64 +2,103 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/auth-provider";
 import { tripService, Trip } from "@/lib/trip-service";
 import { TripHistoryDashboard } from "@/components/trip-history-dashboard";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Card } from "@/components/ui/card";
+import { AnimatedBackground } from "@/components/animated-background";
 
 export default function TripsPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tripsLoading, setTripsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [windowDimensions, setWindowDimensions] = useState({
+    width: 1200,
+    height: 800,
+  });
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // Check authentication
-    const checkAuth = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    setMounted(true);
+  }, []);
 
-      if (!user) {
-        router.push("/");
-        return;
-      }
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
 
-      setUser(user);
-      await loadUserTrips(user.id);
-    };
+      const handleResize = () => {
+        setWindowDimensions({
+          width: window.innerWidth,
+          height: window.innerHeight,
+        });
+      };
 
-    checkAuth();
-  }, [router]);
-
-  const loadUserTrips = async (userId: string) => {
-    try {
-      setLoading(true);
-      const userTrips = await tripService.getUserTrips(userId);
-      setTrips(userTrips);
-    } catch (err) {
-      console.error("Error loading trips:", err);
-      setError("Failed to load your trips. Please try again.");
-    } finally {
-      setLoading(false);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }
-  };
+  }, []);
 
-  const handleTripSelect = (tripId: string) => {
-    // Navigate to individual trip page
-    router.push(`/trips/${tripId}`);
-  };
+  // Handle auth redirect
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/");
+    }
+  }, [user, authLoading, router]);
 
-  const handleNewTrip = () => {
-    router.push("/");
-  };
+  // Load trips data only when we have a user
+  useEffect(() => {
+    if (user && !authLoading) {
+      const loadTrips = async () => {
+        setTripsLoading(true);
+        try {
+          const userTrips = await tripService.getUserTrips(user.id);
+          setTrips(userTrips);
+        } catch (err) {
+          console.error("Error loading trips:", err);
+          setError("Failed to load your trips. Please try again.");
+        } finally {
+          setTripsLoading(false);
+        }
+      };
 
-  if (loading) {
+      loadTrips();
+    }
+  }, [user, authLoading]);
+
+  // Show loading while auth is being determined
+  if (authLoading) {
     return (
-      <div className="h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-purple-900/50 via-purple-800/30 to-purple-700/50">
+      <div className="h-screen flex flex-col relative overflow-hidden">
+        <AnimatedBackground
+          windowDimensions={windowDimensions}
+          mounted={mounted}
+        />
+        <div className="flex items-center justify-center h-full relative z-10">
+          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
+            <LoadingSpinner />
+            <p className="text-white/70 mt-4 text-center">
+              Checking authentication...
+            </p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while trips are being loaded
+  if (user && tripsLoading) {
+    return (
+      <div className="h-screen flex flex-col relative overflow-hidden">
+        <AnimatedBackground
+          windowDimensions={windowDimensions}
+          mounted={mounted}
+        />
         <div className="flex items-center justify-center h-full relative z-10">
           <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
             <LoadingSpinner />
@@ -74,7 +113,11 @@ export default function TripsPage() {
 
   if (error) {
     return (
-      <div className="h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-purple-900/50 via-purple-800/30 to-purple-700/50">
+      <div className="h-screen flex flex-col relative overflow-hidden">
+        <AnimatedBackground
+          windowDimensions={windowDimensions}
+          mounted={mounted}
+        />
         <div className="flex items-center justify-center h-full relative z-10">
           <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
             <p className="text-red-400 text-center">{error}</p>
@@ -84,24 +127,19 @@ export default function TripsPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex flex-col relative bg-gradient-to-br from-purple-900/50 via-purple-800/30 to-purple-700/50">
-      <style jsx global>{`
-        :root {
-          --accent: 147 51 234; /* purple-600 */
-          --accent-foreground: 255 255 255; /* white */
-        }
-      `}</style>
+  // Don't render anything while redirecting
+  if (!user) {
+    return null;
+  }
 
-      {/* Scrollable content */}
+  return (
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      <AnimatedBackground
+        windowDimensions={windowDimensions}
+        mounted={mounted}
+      />
       <div className="relative z-10 flex-1">
-        <TripHistoryDashboard
-          user={user!}
-          trips={trips}
-          onTripSelect={handleTripSelect}
-          onNewTrip={handleNewTrip}
-          onRefresh={() => loadUserTrips(user!.id)}
-        />
+        <TripHistoryDashboard user={user} trips={trips} />
       </div>
     </div>
   );

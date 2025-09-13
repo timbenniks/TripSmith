@@ -1,12 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Copy, Download, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
-import { useState } from "react";
 import { ItineraryRenderer } from "@/components/itinerary-renderer";
 
 // Process markdown content with table conversion
@@ -189,39 +186,9 @@ export interface Message {
 
 interface MessageBubbleProps {
   message: Message;
-  onCopy: (content: string) => void;
-  onExport: (content: string) => void;
-  onExportPDF?: (content: string) => void;
 }
 
-export function MessageBubble({
-  message,
-  onCopy,
-  onExport,
-  onExportPDF,
-}: MessageBubbleProps) {
-  const [isPdfExporting, setIsPdfExporting] = useState(false);
-
-  // Check if this is an itinerary message by looking for certain keywords
-  const isItinerary =
-    message.role === "assistant" &&
-    (message.content.toLowerCase().includes("itinerary") ||
-      message.content.toLowerCase().includes("day 1") ||
-      message.content.toLowerCase().includes("schedule") ||
-      message.content.includes("|")); // Contains tables which are likely itinerary items
-
-  const handlePdfExport = async () => {
-    if (!onExportPDF || isPdfExporting) return;
-
-    setIsPdfExporting(true);
-    try {
-      await onExportPDF(message.content);
-    } catch (error) {
-      console.error("PDF export failed:", error);
-    } finally {
-      setIsPdfExporting(false);
-    }
-  };
+export function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <motion.div
       key={message.id}
@@ -251,42 +218,6 @@ export function MessageBubble({
                 </div>
               ) : (
                 <MarkdownWithTables content={message.content} />
-              )}
-            </div>
-            <div className="flex items-center gap-2 pt-2 border-t border-white/20">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onCopy(message.content)}
-                className="text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <Copy className="h-3 w-3 mr-1" />
-                Copy
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onExport(message.content)}
-                className="text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Export MD
-              </Button>
-              {isItinerary && onExportPDF && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePdfExport}
-                  disabled={isPdfExporting}
-                  className="text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
-                >
-                  {isPdfExporting ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <Download className="h-3 w-3 mr-1" />
-                  )}
-                  {isPdfExporting ? "Generating..." : "Export PDF"}
-                </Button>
               )}
             </div>
           </div>

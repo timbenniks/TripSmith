@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TripForm, type TripDetails } from "@/components/trip-form";
@@ -58,6 +59,7 @@ function extractItineraryData(content: string): {
 
 export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   const { user, loading } = useAuth();
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -363,7 +365,11 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
         console.log("Messages saved successfully:", saved);
         if (saved) {
           setShowSavedIndicator(true);
-          setTimeout(() => setShowSavedIndicator(false), 3000);
+          // Show success indicator for 2 seconds, then redirect to trip page
+          setTimeout(() => {
+            setShowSavedIndicator(false);
+            router.push(`/trips/${currentTripId}`);
+          }, 2000);
         }
       } else {
         console.log("No currentTripId - messages not saved");
@@ -412,49 +418,6 @@ Please welcome me and let me know how you can help with my trip planning.`;
     if (input.trim()) {
       sendMessage(input);
       setInput("");
-    }
-  };
-
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content);
-  };
-
-  const exportItinerary = (content: string) => {
-    if (typeof window === "undefined") return;
-    const blob = new Blob([content], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tripsmith-itinerary.md";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const exportItineraryAsPDF = async (content: string) => {
-    try {
-      console.log("Chat interface: Attempting PDF export...");
-      await exportToPDF({
-        content,
-        tripDestination: formData.destination,
-      });
-      console.log("Chat interface: PDF export successful");
-    } catch (error) {
-      console.error("Chat interface: Error generating PDF:", error);
-      console.log(
-        "Chat interface: NOT falling back to markdown - debugging PDF issue"
-      );
-
-      // Instead of falling back, let's alert the user about the specific error
-      alert(
-        `PDF export failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }. Check console for details.`
-      );
-
-      // Uncomment this line if you want to fall back to markdown export
-      // exportItinerary(content);
     }
   };
 
@@ -567,13 +530,7 @@ Please welcome me and let me know how you can help with my trip planning.`;
 
                 <AnimatePresence>
                   {messages.map((message: Message) => (
-                    <MessageBubble
-                      key={message.id}
-                      message={message}
-                      onCopy={copyToClipboard}
-                      onExport={exportItinerary}
-                      onExportPDF={exportItineraryAsPDF}
-                    />
+                    <MessageBubble key={message.id} message={message} />
                   ))}
                 </AnimatePresence>
 

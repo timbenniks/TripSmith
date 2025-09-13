@@ -2,37 +2,23 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { User } from "@supabase/supabase-js";
 import { Trip } from "@/lib/trip-service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Plus,
-  MapPin,
-  Calendar,
-  Clock,
-  ArrowRight,
-  Filter,
-  SortDesc,
-} from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { TripCard } from "@/components/trip-card";
 
 interface TripHistoryDashboardProps {
   user: User;
   trips: Trip[];
-  onTripSelect: (tripId: string) => void;
-  onNewTrip: () => void;
-  onRefresh: () => void;
 }
 
 export function TripHistoryDashboard({
   user,
   trips,
-  onTripSelect,
-  onNewTrip,
-  onRefresh,
 }: TripHistoryDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -112,13 +98,12 @@ export function TripHistoryDashboard({
                 : "Ready to plan your next adventure?"}
             </p>
           </div>
-          <Button
-            onClick={onNewTrip}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            New Trip
-          </Button>
+          <Link href="/">
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+              <Plus className="h-5 w-5 mr-2" />
+              New Trip
+            </Button>
+          </Link>
         </div>
 
         {/* Search and Filter Bar */}
@@ -179,13 +164,12 @@ export function TripHistoryDashboard({
                 : "Start planning your first adventure!"}
             </p>
             {!searchQuery && statusFilter === "all" && (
-              <Button
-                onClick={onNewTrip}
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Plan Your First Trip
-              </Button>
+              <Link href="/">
+                <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Plan Your First Trip
+                </Button>
+              </Link>
             )}
           </Card>
         </div>
@@ -196,7 +180,9 @@ export function TripHistoryDashboard({
         >
           {filteredTrips.map((trip, index) => (
             <div key={trip.id}>
-              <TripCard trip={trip} onSelect={() => onTripSelect(trip.id)} />
+              <Link href={`/trips/${trip.id}`}>
+                <TripCard trip={trip} onSelect={() => {}} />
+              </Link>
             </div>
           ))}
         </div>
