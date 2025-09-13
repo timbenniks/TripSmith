@@ -33,11 +33,12 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 
   const remove = (id: string) => setToasts((p) => p.filter((t) => t.id !== id));
 
-  const baseGlass = 'relative mb-3 w-[300px] overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] px-4 py-3 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.05)] backdrop-blur-2xl ring-1 ring-white/15 text-sm text-white/90 transition-[transform,opacity] will-change-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60';
-  const variantAccent: Record<string, string> = {
-    success: 'from-emerald-300/90 via-emerald-400/60 to-emerald-300/90 text-emerald-100',
-    error: 'from-rose-400/90 via-rose-500/60 to-rose-400/90 text-rose-100',
-    default: 'from-indigo-300/80 via-fuchsia-400/40 to-cyan-300/70 text-white/90'
+  const baseGlass = 'relative mb-3 w-[300px] overflow-hidden rounded-xl border border-white/15 bg-white/[0.10] before:absolute before:inset-0 before:bg-[linear-gradient(140deg,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0.12)_32%,rgba(255,255,255,0)_70%)] before:pointer-events-none px-4 py-3 shadow-[0_4px_28px_-6px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.05)] backdrop-blur-2xl ring-1 ring-white/10 text-sm text-white/90 transition-[transform,opacity,background-color] will-change-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60';
+  // Neutral monochrome variants (slight tint shifts only)
+  const variantStyles: Record<string, string> = {
+    success: 'after:absolute after:inset-0 after:bg-emerald-300/5 after:pointer-events-none',
+    error: 'after:absolute after:inset-0 after:bg-rose-300/5 after:pointer-events-none',
+    default: ''
   };
 
   return (
@@ -45,7 +46,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
       <Toast.Provider swipeDirection="right">
         {children}
         {toasts.map((t) => {
-          const accent = variantAccent[t.variant || 'default'];
+          const variantClass = variantStyles[t.variant || 'default'];
           return (
             <Toast.Root
               key={t.id}
@@ -53,12 +54,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
               className={`${baseGlass} data-[state=closed]:opacity-0 data-[state=closed]:translate-y-1 data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=end]:opacity-0 data-[swipe=end]:transition`}
               onOpenChange={(open) => { if (!open) remove(t.id); }}
             >
-              {/* Accent gradient bar */}
-              <span className={`pointer-events-none absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b ${accent}`} aria-hidden="true" />
-              {/* Soft light overlay */}
-              <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(255,255,255,0.25)_0%,rgba(255,255,255,0.08)_35%,rgba(255,255,255,0)_70%)]" aria-hidden="true" />
-              {/* Subtle noise / vignette via backdrop layering (optional left as placeholder) */}
-              <div className="relative z-10 pr-5">
+              <div className={`relative z-10 pr-5 ${variantClass}`}>
                 {t.title && <Toast.Title className="font-semibold tracking-wide drop-shadow-sm mb-1 leading-none">{t.title}</Toast.Title>}
                 {t.description && (
                   <Toast.Description className="text-[11px] leading-relaxed text-contrast-tertiary text-white/70">
