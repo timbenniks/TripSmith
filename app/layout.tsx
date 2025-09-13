@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
 import { Suspense } from "react";
+import { AppToastProvider } from '@/components/ui/toast-provider';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <AuthProvider>
+              <AppToastProvider>
               {/* Skip to content link for keyboard users */}
               <a
                 href="#main-content"
@@ -41,6 +43,7 @@ export default function RootLayout({
               <main id="main-content" role="main">
                 {children}
               </main>
+              </AppToastProvider>
             </AuthProvider>
           </ThemeProvider>
         </Suspense>

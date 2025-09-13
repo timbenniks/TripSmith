@@ -8,6 +8,7 @@ import { TripActionsHeader } from "./trip-actions-header";
 import { TripChatSidebar } from "./trip-chat-sidebar";
 import { TripItineraryDisplay } from "./trip-itinerary-display";
 import { UserMenu } from "@/components/user-menu";
+import { useAppToast } from '@/components/ui/toast-provider';
 // Note: Itinerary extraction handled inside streaming-utils when handleItineraryGeneration=true
 import {
   handleStreamingResponse,
@@ -48,6 +49,7 @@ export function MatureTripPage({
   );
   const [autoCompleteChecked, setAutoCompleteChecked] = useState(false);
   const [showCompleteSuggestion, setShowCompleteSuggestion] = useState(false);
+  const { push } = useAppToast();
 
   // (Removed PDF test: deprecated PDF export layer)
 
@@ -161,6 +163,9 @@ export function MatureTripPage({
         if (!ok) {
           // Revert if failed
             setTrip(prev => ({ ...prev, status: previousStatus }));
+            push({ title: 'Status update failed', description: 'Could not auto-complete trip.', variant: 'error' });
+        } else {
+            push({ title: 'Trip completed', description: 'Trip automatically marked as completed.', variant: 'success' });
         }
         setAutoCompleteChecked(true);
       })();

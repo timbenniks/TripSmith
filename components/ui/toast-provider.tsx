@@ -1,0 +1,82 @@
+"use client";
+
+import * as Toast from '@radix-ui/react-toast';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+
+interface AppToast {
+  id: string;
+  title?: string;
+  description?: string;
+  duration?: number;
+  variant?: 'default' | 'success' | 'error';
+}
+
+interface ToastContextValue {
+  push: (toast: Omit<AppToast, 'id'>) => void;
+}
+
+const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+
+export function useAppToast() {
+  const ctx = useContext(ToastContext);
+  if (!ctx) throw new Error('useAppToast must be used within <AppToastProvider>');
+  return ctx;
+}
+
+export function AppToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<AppToast[]>([]);
+
+  const push = useCallback((toast: Omit<AppToast, 'id'>) => {
+    const id = Date.now().toString() + Math.random().toString(36).slice(2);
+    setToasts((prev) => [...prev, { id, duration: 4000, variant: 'default', ...toast }]);
+  }, []);
+
+  const remove = (id: string) => setToasts((p) => p.filter((t) => t.id !== id));
+
+  const baseGlass = 'relative mb-3 w-[300px] overflow-hidden rounded-xl border border-white/25 bg-white/[0.07] px-4 py-3 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.05)] backdrop-blur-2xl ring-1 ring-white/15 text-sm text-white/90 transition-[transform,opacity] will-change-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60';
+  const variantAccent: Record<string, string> = {
+    success: 'from-emerald-300/90 via-emerald-400/60 to-emerald-300/90 text-emerald-100',
+    error: 'from-rose-400/90 via-rose-500/60 to-rose-400/90 text-rose-100',
+    default: 'from-indigo-300/80 via-fuchsia-400/40 to-cyan-300/70 text-white/90'
+  };
+
+  return (
+    <ToastContext.Provider value={{ push }}>
+      <Toast.Provider swipeDirection="right">
+        {children}
+        {toasts.map((t) => {
+          const accent = variantAccent[t.variant || 'default'];
+          return (
+            <Toast.Root
+              key={t.id}
+              duration={t.duration}
+              className={`${baseGlass} data-[state=closed]:opacity-0 data-[state=closed]:translate-y-1 data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=end]:opacity-0 data-[swipe=end]:transition`}
+              onOpenChange={(open) => { if (!open) remove(t.id); }}
+            >
+              {/* Accent gradient bar */}
+              <span className={`pointer-events-none absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b ${accent}`} aria-hidden="true" />
+              {/* Soft light overlay */}
+              <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(255,255,255,0.25)_0%,rgba(255,255,255,0.08)_35%,rgba(255,255,255,0)_70%)]" aria-hidden="true" />
+              {/* Subtle noise / vignette via backdrop layering (optional left as placeholder) */}
+              <div className="relative z-10 pr-5">
+                {t.title && <Toast.Title className="font-semibold tracking-wide drop-shadow-sm mb-1 leading-none">{t.title}</Toast.Title>}
+                {t.description && (
+                  <Toast.Description className="text-[11px] leading-relaxed text-contrast-tertiary text-white/70">
+                    {t.description}
+                  </Toast.Description>
+                )}
+              </div>
+              <Toast.Close
+                aria-label="Close"
+                className="absolute right-2 top-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/5 text-[11px] font-medium text-white/60 backdrop-blur-sm transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              >
+                ✕
+              </Toast.Close>
+            </Toast.Root>
+          );
+        })}
+        <Toast.Viewport className="fixed top-4 right-4 z-[100] flex max-h-screen w-[320px] flex-col outline-none" />
+      </Toast.Provider>
+    </ToastContext.Provider>
+  );
+}

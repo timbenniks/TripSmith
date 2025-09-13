@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAppToast } from '@/components/ui/toast-provider';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export function TripActionsHeader({
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [localStatus, setLocalStatus] = useState(status);
   const router = useRouter();
+  const { push } = useAppToast();
 
   const handleDelete = async () => {
     setIsDeleteLoading(true);
@@ -77,10 +79,20 @@ export function TripActionsHeader({
     setIsStatusUpdating(true);
     try {
       await onStatusChange(newStatus);
+      push({
+        title: 'Status updated',
+        description: `Trip marked as ${newStatus}.`,
+        variant: 'success'
+      });
     } catch (err) {
       console.error("Failed to change status", err);
       // revert optimistic change on error
       setLocalStatus(status);
+      push({
+        title: 'Update failed',
+        description: 'Could not update trip status. Try again.',
+        variant: 'error'
+      });
     } finally {
       setIsStatusUpdating(false);
     }
@@ -148,10 +160,10 @@ export function TripActionsHeader({
               <option value="completed">Completed</option>
             </select>
             {/* Dropdown arrow */}
-            <span className="pointer-events-none absolute right-1.5 text-white/50 text-[10px]">▾</span>
-            {isStatusUpdating && (
-              <span className="ml-2 text-[10px] text-contrast-quaternary">Saving…</span>
-            )}
+            <span className="pointer-events-none absolute right-1.5 text-white/50 text-[10px]">
+              ▾
+            </span>
+            {/* Removed inline saving indicator in favor of toast */}
           </div>
           <span className="hidden sm:inline text-[10px] uppercase tracking-wide text-contrast-quaternary mr-1">
             {/* Visual divider label can be omitted for compactness */}

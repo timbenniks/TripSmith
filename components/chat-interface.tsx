@@ -12,6 +12,7 @@ import { HybridResponse } from "@/lib/types";
 import { MessageBubble } from "@/components/message-bubble";
 import { ChatInput } from "@/components/chat-input";
 import { AnimatedBackground } from "@/components/animated-background";
+import { useAppToast } from '@/components/ui/toast-provider';
 import { EarthVisualization } from "@/components/earth-visualization";
 import { UserMenu } from "@/components/user-menu";
 import { generateWelcomeMessage, type Message } from "@/lib/chat-utils";
@@ -54,6 +55,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   const [isClient, setIsClient] = useState(false);
   const [mounted, setMounted] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { push } = useAppToast();
 
   useEffect(() => {
     setMounted(true);
@@ -357,14 +359,9 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
 
         console.log("Messages saved successfully:", saved);
         if (saved) {
-          setShowSavedIndicator(true);
+          push({ title: 'Trip saved', description: 'Your conversation & itinerary were saved.', variant: 'success' });
           setLiveMessage("Trip saved successfully");
-          // Show success indicator for 2 seconds, then redirect to trip page
-          setTimeout(() => {
-            setShowSavedIndicator(false);
-            setLiveMessage("");
-            router.push(`/trips/${currentTripId}`);
-          }, 2000);
+          router.push(`/trips/${currentTripId}`);
         }
       } else {
         console.log("No currentTripId - messages not saved");
@@ -441,36 +438,6 @@ Please welcome me and let me know how you can help with my trip planning.`;
       <UserMenu />
 
       <div className="flex-1 min-h-0 relative z-10">
-        {!showForm && (
-          <div className="absolute top-6 left-6 z-20">
-            <div
-              className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden bg-black/20 backdrop-blur-xl border border-white/30 shadow-lg ring-1 ring-white/20"
-              aria-hidden="true"
-            >
-              <Image
-                src="/images/tripsmith-logo.png"
-                alt=""
-                width={48}
-                height={48}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Trip saved indicator */}
-            <AnimatePresence>
-              {showSavedIndicator && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, y: -10 }}
-                  className="absolute top-14 left-0 bg-green-500/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md border border-green-400/50 shadow-lg"
-                >
-                  ✓ Trip saved
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
 
         {/* Live regions: polite (status updates) and assertive (errors) */}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
