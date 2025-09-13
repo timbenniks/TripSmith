@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useAppToast } from '@/components/ui/toast-provider';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ export function TripActionsHeader({
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [localStatus, setLocalStatus] = useState(status);
   const router = useRouter();
-  const { push } = useAppToast();
 
   const handleDelete = async () => {
     setIsDeleteLoading(true);
@@ -79,20 +77,10 @@ export function TripActionsHeader({
     setIsStatusUpdating(true);
     try {
       await onStatusChange(newStatus);
-      push({
-        title: 'Status updated',
-        description: `Trip marked as ${newStatus}.`,
-        variant: 'success'
-      });
     } catch (err) {
       console.error("Failed to change status", err);
       // revert optimistic change on error
       setLocalStatus(status);
-      push({
-        title: 'Update failed',
-        description: 'Could not update trip status. Try again.',
-        variant: 'error'
-      });
     } finally {
       setIsStatusUpdating(false);
     }

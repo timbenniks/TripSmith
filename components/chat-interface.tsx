@@ -12,7 +12,6 @@ import { HybridResponse } from "@/lib/types";
 import { MessageBubble } from "@/components/message-bubble";
 import { ChatInput } from "@/components/chat-input";
 import { AnimatedBackground } from "@/components/animated-background";
-import { useAppToast } from '@/components/ui/toast-provider';
 import { EarthVisualization } from "@/components/earth-visualization";
 import { UserMenu } from "@/components/user-menu";
 import { generateWelcomeMessage, type Message } from "@/lib/chat-utils";
@@ -55,7 +54,6 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   const [isClient, setIsClient] = useState(false);
   const [mounted, setMounted] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { push } = useAppToast();
 
   useEffect(() => {
     setMounted(true);
@@ -359,7 +357,6 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
 
         console.log("Messages saved successfully:", saved);
         if (saved) {
-          push({ title: 'Trip saved', description: 'Your conversation & itinerary were saved.', variant: 'success' });
           setLiveMessage("Trip saved successfully");
           router.push(`/trips/${currentTripId}`);
         }
