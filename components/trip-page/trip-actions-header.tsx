@@ -8,8 +8,11 @@ import { ArrowLeft, Download, Share2, Trash2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface TripActionsHeaderProps {
+  tripId: string;
   tripName: string;
   destination: string;
+  status: 'planning' | 'booked' | 'completed';
+  onStatusChange: (newStatus: 'planning' | 'booked' | 'completed') => Promise<void> | void;
   onDelete: () => void;
   onDownloadPDF: () => void;
   onShare: () => void;
@@ -17,8 +20,11 @@ interface TripActionsHeaderProps {
 }
 
 export function TripActionsHeader({
+  tripId,
   tripName,
   destination,
+  status,
+  onStatusChange,
   onDelete,
   onDownloadPDF,
   onShare,
@@ -26,6 +32,8 @@ export function TripActionsHeader({
 }: TripActionsHeaderProps) {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isPDFLoading, setIsPDFLoading] = useState(false);
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+  const [localStatus, setLocalStatus] = useState(status);
   const router = useRouter();
 
   const handleDelete = async () => {
@@ -55,6 +63,22 @@ export function TripActionsHeader({
       onBackToTrips();
     } else {
       router.push("/trips");
+    }
+  };
+
+  const handleStatusSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = e.target.value as 'planning' | 'booked' | 'completed';
+    if (newStatus === localStatus) return;
+    setLocalStatus(newStatus); // optimistic
+    setIsStatusUpdating(true);
+    try {
+      await onStatusChange(newStatus);
+    } catch (err) {
+      console.error('Failed to change status', err);
+      // revert optimistic change on error
+      setLocalStatus(status);
+    } finally {
+      setIsStatusUpdating(false);
     }
   };
 
@@ -97,6 +121,25 @@ export function TripActionsHeader({
             <p className="text-xs sm:text-sm text-white/60 truncate">
               {destination}
             </p>
+            {/* Status Selector */}
+            <div className="mt-1 flex items-center gap-2">
+              <label htmlFor="trip-status" className="text-[10px] uppercase tracking-wide text-contrast-tertiary">Status</label>
+              <select
+                id="trip-status"
+                value={localStatus}
+                onChange={handleStatusSelect}
+                disabled={isStatusUpdating}
+                className="bg-black/30 border border-white/20 rounded-md text-xs px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-400/50 disabled:opacity-50 cursor-pointer"
+                aria-live="polite"
+              >
+                <option value="planning">Planning</option>
+                <option value="booked">Booked</option>
+                <option value="completed">Completed</option>
+              </select>
+              {isStatusUpdating && (
+                <span className="text-[10px] text-contrast-quaternary">Saving…</span>
+              )}
+            </div>
           </div>
         </div>
 
