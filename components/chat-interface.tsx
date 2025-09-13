@@ -15,7 +15,6 @@ import { AnimatedBackground } from "@/components/animated-background";
 import { EarthVisualization } from "@/components/earth-visualization";
 import { UserMenu } from "@/components/user-menu";
 import { generateWelcomeMessage, type Message } from "@/lib/chat-utils";
-import { exportToPDF, testPDFLibraries } from "@/lib/pdf-utils";
 import { tripService } from "@/lib/trip-service";
 import { useAuth } from "@/components/auth-provider";
 import { AuthModal } from "@/components/auth-modal";
@@ -45,6 +44,8 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   });
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
   const [showSavedIndicator, setShowSavedIndicator] = useState(false);
+  const [liveMessage, setLiveMessage] = useState("");
+  const [assertiveMessage, setAssertiveMessage] = useState(""); // For urgent/error announcements
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [windowDimensions, setWindowDimensions] = useState({
     width: 1200,
@@ -57,13 +58,6 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   useEffect(() => {
     setMounted(true);
     setIsClient(true);
-
-    // Test PDF libraries when component mounts
-    if (typeof window !== "undefined") {
-      testPDFLibraries().then((result) => {
-        console.log("PDF libraries test result:", result);
-      });
-    }
   }, []);
 
   useEffect(() => {
@@ -139,6 +133,9 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
           }
         } catch (error) {
           console.error("Error loading trip:", error);
+          setAssertiveMessage(
+            "Error loading trip data. Some information may be missing."
+          );
         }
       }
     };
@@ -159,6 +156,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setIsLoading(true);
+    setLiveMessage("Assistant is generating a response");
 
     try {
       const response = await fetch("/api/chat", {
@@ -225,6 +223,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
                   : msg
               )
             );
+            setLiveMessage("Generating itinerary details");
           } else if (!hasJsonStart) {
             // Normal text streaming - show content as usual
             setMessages((prev) =>
@@ -257,6 +256,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
               : msg
           )
         );
+        setLiveMessage("Itinerary generated");
 
         // Save structured data to database
         if (currentTripId) {
@@ -278,6 +278,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
               : msg
           )
         );
+        setLiveMessage("Response received");
       }
 
       // Legacy handling for old hybrid format (can be removed later)
@@ -357,9 +358,11 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
         console.log("Messages saved successfully:", saved);
         if (saved) {
           setShowSavedIndicator(true);
+          setLiveMessage("Trip saved successfully");
           // Show success indicator for 2 seconds, then redirect to trip page
           setTimeout(() => {
             setShowSavedIndicator(false);
+            setLiveMessage("");
             router.push(`/trips/${currentTripId}`);
           }, 2000);
         }
@@ -376,8 +379,12 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+      setAssertiveMessage(
+        "Chat error. Assistant is temporarily unavailable. Try again."
+      );
     } finally {
       setIsLoading(false);
+      setLiveMessage("");
     }
   };
 
@@ -436,10 +443,13 @@ Please welcome me and let me know how you can help with my trip planning.`;
       <div className="flex-1 min-h-0 relative z-10">
         {!showForm && (
           <div className="absolute top-6 left-6 z-20">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden bg-black/20 backdrop-blur-xl border border-white/30 shadow-lg ring-1 ring-white/20">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden bg-black/20 backdrop-blur-xl border border-white/30 shadow-lg ring-1 ring-white/20"
+              aria-hidden="true"
+            >
               <Image
                 src="/images/tripsmith-logo.png"
-                alt="TripSmith Logo"
+                alt=""
                 width={48}
                 height={48}
                 className="w-full h-full object-cover"
@@ -462,8 +472,25 @@ Please welcome me and let me know how you can help with my trip planning.`;
           </div>
         )}
 
-        <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
-          <div className="max-w-4xl mx-auto space-y-6 pb-6">
+        {/* Live regions: polite (status updates) and assertive (errors) */}
+        <div className="sr-only" aria-live="polite" aria-atomic="true">
+          {liveMessage}
+        </div>
+        <div className="sr-only" aria-live="assertive" aria-atomic="true">
+          {assertiveMessage}
+        </div>
+
+        <ScrollArea
+          className="h-full p-6"
+          ref={scrollAreaRef}
+          aria-label="Chat conversation"
+        >
+          <div
+            className="max-w-4xl mx-auto space-y-6 pb-6"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions text"
+          >
             {/* Authentication Loading State */}
             {/* {loading && (
               <div className="flex justify-center items-center min-h-[60vh]">
@@ -521,18 +548,34 @@ Please welcome me and let me know how you can help with my trip planning.`;
                 {showForm && <TripForm onSubmit={handleFormSubmit} />}
 
                 <AnimatePresence>
-                  {messages.map((message: Message) => (
-                    <MessageBubble key={message.id} message={message} />
+                  {messages.map((message: Message, index: number) => (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      aria-posinset={index + 1}
+                      aria-setsize={messages.length}
+                    />
                   ))}
                 </AnimatePresence>
 
                 {isLoading && (
-                  <div className="flex justify-start">
+                  <div
+                    className="flex justify-start"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
                     <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
                       <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
-                          <div className="absolute -inset-1 rounded-full bg-purple-400/20 animate-pulse"></div>
+                        <div className="relative" aria-hidden="true">
+                          <Loader2
+                            className="h-6 w-6 animate-spin text-purple-400"
+                            aria-hidden="true"
+                          />
+                          <div
+                            className="absolute -inset-1 rounded-full bg-purple-400/20 animate-pulse"
+                            aria-hidden="true"
+                          ></div>
                         </div>
                         <div>
                           <div className="text-base font-medium text-white">

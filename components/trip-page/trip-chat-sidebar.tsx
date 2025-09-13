@@ -84,7 +84,7 @@ export function TripChatSidebar({
             <h3 className="font-medium text-white text-sm truncate">
               Trip Chat
             </h3>
-            <p className="text-xs text-white/60 truncate">
+            <p className="text-xs text-contrast-tertiary truncate">
               {messages.length} message{messages.length !== 1 ? "s" : ""}
             </p>
           </div>
@@ -102,14 +102,18 @@ export function TripChatSidebar({
                   <h4 className="font-medium text-white mb-2">
                     Start the conversation
                   </h4>
-                  <p className="text-sm text-white/70">
+                  <p className="text-sm text-contrast-tertiary">
                     Ask me anything about your trip to {tripDetails.destination}
                   </p>
                 </Card>
               </div>
             ) : (
               messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  disableAnimation
+                />
               ))
             )}
 
@@ -119,7 +123,7 @@ export function TripChatSidebar({
                 <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-lg ring-1 ring-white/20 p-4">
                   <div className="flex items-center gap-2">
                     <LoadingSpinner size="sm" />
-                    <span className="text-white/70 text-sm">
+                    <span className="text-contrast-tertiary text-sm">
                       TripSmith is thinking...
                     </span>
                   </div>
@@ -138,7 +142,7 @@ export function TripChatSidebar({
               value={input}
               onChange={handleInputChange}
               placeholder={`Ask about your trip to ${tripDetails.destination}...`}
-              className="w-full bg-black/20 backdrop-blur-xl border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px] text-sm"
+              className="w-full bg-black/20 backdrop-blur-xl border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder:placeholder-contrast focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px] text-sm"
               rows={2}
               disabled={isLoading}
               onKeyDown={(e) => {
@@ -151,7 +155,7 @@ export function TripChatSidebar({
           </div>
 
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-            <p className="text-xs text-white/50 order-2 sm:order-1">
+            <p className="text-xs text-contrast-quaternary order-2 sm:order-1">
               Press Enter to send, Shift+Enter for new line
             </p>
             <button

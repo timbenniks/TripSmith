@@ -6,49 +6,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { ItineraryRenderer } from "@/components/itinerary-renderer";
 import { ItineraryLoading } from "@/components/itinerary-loading";
-import {
-  processMarkdownContent,
-  splitContentByTables,
-  isTablePlaceholder,
-} from "@/lib/markdown-utils";
 import { chatMarkdownComponents } from "@/lib/markdown-components";
-
-// Component to render content with tables
-function MarkdownWithTables({ content }: { content: string }) {
-  const { processedContent, tables } = processMarkdownContent(content);
-
-  // Split content by table placeholders and render
-  const parts = splitContentByTables(processedContent);
-
-  return (
-    <>
-      {parts.map((part, index) => {
-        const placeholderResult = isTablePlaceholder(part);
-        if (
-          placeholderResult.isTable &&
-          placeholderResult.tableIndex !== undefined
-        ) {
-          return (
-            <div
-              key={index}
-              className="max-w-full overflow-hidden"
-              style={{ maxWidth: "100%" }}
-              dangerouslySetInnerHTML={{
-                __html: tables[placeholderResult.tableIndex].html,
-              }}
-            />
-          );
-        } else {
-          return (
-            <ReactMarkdown key={index} components={chatMarkdownComponents}>
-              {part}
-            </ReactMarkdown>
-          );
-        }
-      })}
-    </>
-  );
-}
 
 export interface Message {
   id: string;
@@ -62,19 +20,37 @@ export interface Message {
 
 interface MessageBubbleProps {
   message: Message;
+  disableAnimation?: boolean; // when true, render static div for performance
+  [key: string]: any; // allow passthrough of aria props
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  disableAnimation = false,
+  ...rest
+}: MessageBubbleProps) {
+  const Wrapper: any = disableAnimation ? "div" : motion.div;
+  const wrapperProps = disableAnimation
+    ? {}
+    : {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -20 },
+      };
+
   return (
-    <motion.div
+    <Wrapper
       key={message.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      {...wrapperProps}
       className={cn(
         "flex w-full min-w-0",
         message.role === "user" ? "justify-end" : "justify-start"
       )}
+      role="article"
+      aria-label={
+        message.role === "user" ? "User message" : "Assistant message"
+      }
+      {...rest}
     >
       <Card
         className={cn(
@@ -83,6 +59,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             ? "bg-black/20 text-white border-white/30 max-w-[85%] sm:max-w-[80%]"
             : "bg-black/20 text-white border-white/30 flex-1 max-w-full"
         )}
+        aria-live={message.role === "assistant" ? "polite" : undefined}
       >
         {message.role === "assistant" ? (
           <div className="space-y-3">
@@ -95,7 +72,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                   <ItineraryRenderer data={message.itineraryData} />
                 </div>
               ) : (
-                <MarkdownWithTables content={message.content} />
+                <ReactMarkdown components={chatMarkdownComponents}>
+                  {message.content}
+                </ReactMarkdown>
               )}
             </div>
           </div>
@@ -105,6 +84,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </p>
         )}
       </Card>
-    </motion.div>
+    </Wrapper>
   );
 }

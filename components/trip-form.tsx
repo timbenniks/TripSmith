@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -39,6 +39,8 @@ export function TripForm({ onSubmit }: TripFormProps) {
   });
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [isCreatingTrip, setIsCreatingTrip] = useState(false);
+  const travelDatesButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
 
   // Update travel dates when date range changes
   useEffect(() => {
@@ -81,30 +83,44 @@ export function TripForm({ onSubmit }: TripFormProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-6">
-      <div className="text-center">
+    <section
+      className="flex flex-col items-center justify-center space-y-6"
+      role="region"
+      aria-labelledby="trip-form-heading"
+    >
+      <header className="text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full mb-4 mx-auto overflow-hidden">
           <Image
             src="/images/tripsmith-logo.png"
-            alt="TripSmith Logo"
+            alt="TripSmith - AI Travel Planner Logo"
             width={64}
             height={64}
             className="w-full h-full object-cover"
           />
         </div>
-        <h2 className="text-2xl font-semibold mb-2 text-white">
+        <h1
+          id="trip-form-heading"
+          className="text-2xl font-semibold mb-2 text-white"
+        >
           Welcome to TripSmith
-        </h2>
+        </h1>
         <p className="max-w-md leading-relaxed text-white">
           Let's start by gathering some details about your business trip to
           create a personalized itinerary.
         </p>
-      </div>
+      </header>
 
-      <Card className="w-full max-w-md p-6 space-y-4 bg-black/20 backdrop-blur-2xl border border-white/30 shadow-2xl ring-1 ring-white/20">
-        <h3 className="text-lg font-semibold text-white mb-[0]">
+      <Card
+        className="w-full max-w-md p-6 space-y-4 bg-black/20 backdrop-blur-2xl border border-white/30 shadow-2xl ring-1 ring-white/20"
+        role="form"
+        aria-labelledby="trip-details-heading"
+      >
+        <h2
+          id="trip-details-heading"
+          className="text-lg font-semibold text-white mb-[0]"
+        >
           Trip Details
-        </h3>
+        </h2>
 
         <div className="space-y-4">
           <div className="space-y-2">
@@ -112,7 +128,7 @@ export function TripForm({ onSubmit }: TripFormProps) {
               htmlFor="destination-input"
               className="flex items-center gap-2 text-sm font-medium text-white cursor-pointer"
             >
-              <MapPin className="h-4 w-4" />
+              <MapPin className="h-4 w-4" aria-hidden="true" />
               Destination
             </label>
             <Input
@@ -126,8 +142,13 @@ export function TripForm({ onSubmit }: TripFormProps) {
                   destination: e.target.value,
                 }))
               }
-              className="bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:text-white/70 shadow-inner"
+              className="bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:placeholder-contrast shadow-inner"
+              aria-required="true"
+              aria-describedby="destination-help"
             />
+            <div id="destination-help" className="sr-only">
+              Enter the city or country you plan to visit
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -135,18 +156,26 @@ export function TripForm({ onSubmit }: TripFormProps) {
               htmlFor="travel-dates-button"
               className="flex items-center gap-2 text-sm font-medium text-white cursor-pointer"
             >
-              <CalendarIcon className="h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" aria-hidden="true" />
               Travel Dates
             </label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   id="travel-dates-button"
+                  ref={travelDatesButtonRef}
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal bg-white/15 backdrop-blur-md border-white/40 hover:border-white/60 hover:bg-white/20 transition-all duration-300 text-white",
-                    !dateRange.from && "text-white/70"
+                    !dateRange.from && "text-contrast-tertiary"
                   )}
+                  aria-haspopup="dialog"
+                  aria-expanded={false}
+                  aria-describedby="travel-dates-help"
+                  onClick={() => {
+                    lastFocusedRef.current =
+                      document.activeElement as HTMLElement;
+                  }}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {dateRange.from ? (
@@ -166,16 +195,47 @@ export function TripForm({ onSubmit }: TripFormProps) {
               <PopoverContent
                 className="w-auto p-0 bg-slate-900/95 backdrop-blur-xl border-white/20 z-50"
                 align="start"
+                onOpenAutoFocus={(e: any) => {
+                  // Prevent default auto-focus behavior; focus first available day cell instead
+                  e.preventDefault();
+                  requestAnimationFrame(() => {
+                    const firstDay = document.querySelector<HTMLElement>(
+                      ".rdp-day:not([disabled])"
+                    );
+                    firstDay?.focus();
+                  });
+                }}
+                onCloseAutoFocus={(e: any) => {
+                  e.preventDefault();
+                  travelDatesButtonRef.current?.focus();
+                }}
               >
                 <Calendar
                   mode="range"
                   selected={dateRange as any}
-                  onSelect={setDateRange as any}
+                  onSelect={(range: any) => {
+                    setDateRange(range);
+                    if (range?.from && range?.to) {
+                      // Close popover by clicking outside programmatically: send Escape
+                      const esc = new KeyboardEvent("keydown", {
+                        key: "Escape",
+                      });
+                      document.dispatchEvent(esc);
+                      // Focus trigger after closing
+                      setTimeout(
+                        () => travelDatesButtonRef.current?.focus(),
+                        0
+                      );
+                    }
+                  }}
                   numberOfMonths={2}
                   className="[&_.rdp-day_selected]:bg-gradient-to-r [&_.rdp-day_selected]:from-purple-600 [&_.rdp-day_selected]:to-blue-600 [&_.rdp-day_selected]:text-white [&_.rdp-day_selected]:border-purple-400/30 [&_.rdp-day_selected:hover]:from-purple-700 [&_.rdp-day_selected:hover]:to-blue-700 [&_.rdp-day_selected]:transition-all [&_.rdp-day_selected]:duration-500 [&_.rdp-day_selected]:shadow-lg [&_.rdp-day_selected:hover]:shadow-purple-500/25 [&_.rdp-range_middle]:bg-gradient-to-r [&_.rdp-range_middle]:from-purple-900/40 [&_.rdp-range_middle]:to-blue-950/50 [&_.rdp-range_middle]:text-white [&_.rdp-range_middle:hover]:from-purple-950/50 [&_.rdp-range_start]:bg-gradient-to-r [&_.rdp-range_start]:from-purple-600 [&_.rdp-range_start]:to-blue-600 [&_.rdp-range_end]:bg-gradient-to-r [&_.rdp-range_end]:from-purple-600 [&_.rdp-range_end]:to-blue-600"
                 />
               </PopoverContent>
             </Popover>
+            <div id="travel-dates-help" className="sr-only">
+              Select your departure and return dates using the calendar picker
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -183,7 +243,7 @@ export function TripForm({ onSubmit }: TripFormProps) {
               htmlFor="purpose-input"
               className="flex items-center gap-2 text-sm font-medium text-white cursor-pointer"
             >
-              <Briefcase className="h-4 w-4" />
+              <Briefcase className="h-4 w-4" aria-hidden="true" />
               Purpose
             </label>
             <Input
@@ -197,8 +257,12 @@ export function TripForm({ onSubmit }: TripFormProps) {
                   purpose: e.target.value,
                 }))
               }
-              className="bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:text-white/70 shadow-inner"
+              className="bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:placeholder-contrast shadow-inner"
+              aria-describedby="purpose-help"
             />
+            <div id="purpose-help" className="sr-only">
+              Describe the purpose of your business trip
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -206,7 +270,7 @@ export function TripForm({ onSubmit }: TripFormProps) {
               htmlFor="timezone-input"
               className="flex items-center gap-2 text-sm font-medium text-white cursor-pointer"
             >
-              <Clock className="h-4 w-4" />
+              <Clock className="h-4 w-4" aria-hidden="true" />
               Home Timezone
             </label>
             <Input
@@ -220,8 +284,13 @@ export function TripForm({ onSubmit }: TripFormProps) {
                   timezone: e.target.value,
                 }))
               }
-              className="bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:text-white/70 shadow-inner"
+              className="bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:placeholder-contrast shadow-inner"
+              aria-describedby="timezone-help"
             />
+            <div id="timezone-help" className="sr-only">
+              Enter your home timezone to help plan itineraries with proper
+              timing
+            </div>
           </div>
 
           <Button
@@ -243,6 +312,6 @@ export function TripForm({ onSubmit }: TripFormProps) {
           </Button>
         </div>
       </Card>
-    </div>
+    </section>
   );
 }

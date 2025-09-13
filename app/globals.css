@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,5 +121,26 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Accessibility: semantic contrast utility classes (WCAG AA) */
+@layer utilities {
+  /* Primary body text remains full white (#fff) on dark backgrounds */
+  .text-contrast-secondary {
+    color: rgba(255, 255, 255, 0.85);
+  } /* for secondary text, >=4.5:1 */
+  .text-contrast-tertiary {
+    color: rgba(255, 255, 255, 0.72);
+  } /* for metadata still >=4.5 on near-black */
+  .text-contrast-quaternary {
+    color: rgba(255, 255, 255, 0.6);
+  } /* use only for non-essential adornments */
+  .placeholder-contrast::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .focus-ring-contrast:focus-visible {
+    outline: 3px solid oklch(0.75 0.2 270);
+    outline-offset: 2px;
   }
 }

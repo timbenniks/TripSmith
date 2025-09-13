@@ -59,32 +59,32 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6"
+      className="space-y-6 xl:space-y-8"
     >
       {/* Trip Header */}
-      <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
+      <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 xl:p-8 text-white shadow-2xl ring-1 ring-white/20">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
             Complete Trip Itinerary
           </h1>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
-              <span className="text-white/60">Traveler:</span>{" "}
+              <span className="text-contrast-tertiary">Traveler:</span>{" "}
               <span className="font-medium">
                 {data.tripHeader.travelerName}
               </span>
             </div>
             <div>
-              <span className="text-white/60">Destination:</span>{" "}
+              <span className="text-contrast-tertiary">Destination:</span>{" "}
               <span className="font-medium">{data.tripHeader.destination}</span>
             </div>
             <div>
-              <span className="text-white/60">Dates:</span>{" "}
+              <span className="text-contrast-tertiary">Dates:</span>{" "}
               <span className="font-medium">{data.tripHeader.dates}</span>
             </div>
             {data.tripHeader.purpose && (
               <div>
-                <span className="text-white/60">Purpose:</span>{" "}
+                <span className="text-contrast-tertiary">Purpose:</span>{" "}
                 <span className="font-medium">{data.tripHeader.purpose}</span>
               </div>
             )}
@@ -94,7 +94,7 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
 
       {/* Flight Schedule */}
       {data.flights && data.flights.length > 0 && (
-        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
+        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 xl:p-7 text-white shadow-2xl ring-1 ring-white/20">
           <h2 className="text-2xl font-semibold mb-4 text-purple-300">
             Flight Schedule
           </h2>
@@ -102,12 +102,24 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/20">
-                  <th className="text-left py-2 text-white/80">Date</th>
-                  <th className="text-left py-2 text-white/80">Flight</th>
-                  <th className="text-left py-2 text-white/80">Route</th>
-                  <th className="text-left py-2 text-white/80">Departure</th>
-                  <th className="text-left py-2 text-white/80">Arrival</th>
-                  <th className="text-left py-2 text-white/80">Terminal</th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Date
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Flight
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Route
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Departure
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Arrival
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Terminal
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +145,7 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
 
       {/* Accommodation */}
       {data.accommodation && data.accommodation.length > 0 && (
-        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
+        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 xl:p-7 text-white shadow-2xl ring-1 ring-white/20">
           <h2 className="text-2xl font-semibold mb-4 text-purple-300">
             Accommodation
           </h2>
@@ -141,10 +153,18 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/20">
-                  <th className="text-left py-2 text-white/80">Property</th>
-                  <th className="text-left py-2 text-white/80">Address</th>
-                  <th className="text-left py-2 text-white/80">Check-in</th>
-                  <th className="text-left py-2 text-white/80">Check-out</th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Property
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Address
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Check-in
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Check-out
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -166,7 +186,7 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
 
       {/* Daily Schedule */}
       {data.dailySchedule && data.dailySchedule.length > 0 && (
-        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
+        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 xl:p-7 text-white shadow-2xl ring-1 ring-white/20">
           <h2 className="text-2xl font-semibold mb-4 text-purple-300">
             Daily Schedule
           </h2>
@@ -174,11 +194,21 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/20">
-                  <th className="text-left py-2 text-white/80">Date</th>
-                  <th className="text-left py-2 text-white/80">Time</th>
-                  <th className="text-left py-2 text-white/80">Activity</th>
-                  <th className="text-left py-2 text-white/80">Location</th>
-                  <th className="text-left py-2 text-white/80">Notes</th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Date
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Time
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Activity
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Location
+                  </th>
+                  <th className="text-left py-2 text-contrast-secondary">
+                    Notes
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -188,7 +218,9 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                     <td className="py-3 font-medium">{item.time}</td>
                     <td className="py-3 text-yellow-300">{item.activity}</td>
                     <td className="py-3">{item.location}</td>
-                    <td className="py-3 text-white/70">{item.notes || "-"}</td>
+                    <td className="py-3 text-contrast-tertiary">
+                      {item.notes || "-"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -199,7 +231,7 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
 
       {/* Recommendations */}
       {data.recommendations && (
-        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
+        <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 xl:p-7 text-white shadow-2xl ring-1 ring-white/20">
           <h2 className="text-2xl font-semibold mb-4 text-purple-300">
             Recommendations
           </h2>
@@ -213,14 +245,18 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-white/20">
-                      <th className="text-left py-2 text-white/80">
+                      <th className="text-left py-2 text-contrast-secondary">
                         Restaurant
                       </th>
-                      <th className="text-left py-2 text-white/80">Cuisine</th>
-                      <th className="text-left py-2 text-white/80">
+                      <th className="text-left py-2 text-contrast-secondary">
+                        Cuisine
+                      </th>
+                      <th className="text-left py-2 text-contrast-secondary">
                         Price Range
                       </th>
-                      <th className="text-left py-2 text-white/80">Location</th>
+                      <th className="text-left py-2 text-contrast-secondary">
+                        Location
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -255,7 +291,7 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                   >
                     <div>
                       <span className="font-medium">{transport.type}</span>
-                      <span className="text-white/70 ml-2">
+                      <span className="text-contrast-tertiary ml-2">
                         {transport.notes}
                       </span>
                     </div>

@@ -36,16 +36,21 @@ export function ChatInput({
   return (
     <div className="flex-shrink-0 border-t border-white/30 bg-black/20 backdrop-blur-2xl p-6 relative z-10 shadow-2xl ring-1 ring-white/20">
       <div className="max-w-4xl mx-auto">
-        <form onSubmit={handleSubmit} className="flex space-x-3">
+        <form
+          onSubmit={handleSubmit}
+          className="flex space-x-3"
+          aria-describedby="chat-instructions"
+        >
           <Textarea
             ref={inputRef}
             value={value}
             onChange={onChange}
             onKeyPress={handleKeyPress}
             placeholder="Ask TripSmith to plan your business trip..."
-            className="flex-1 bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:text-white/70 shadow-inner resize-none"
+            className="flex-1 bg-white/15 backdrop-blur-md border-white/40 focus:border-white/60 focus:bg-white/20 transition-all duration-300 text-white placeholder:placeholder-contrast shadow-inner resize-none"
             disabled={isLoading}
             aria-label="Chat message input"
+            aria-describedby="chat-instructions"
             rows={5}
           />
           <Button
@@ -58,8 +63,11 @@ export function ChatInput({
             <Send className="h-4 w-4 relative z-10" />
           </Button>
         </form>
-        <p className="text-xs text-white/60 mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line
+        <p
+          id="chat-instructions"
+          className="text-xs text-contrast-tertiary mt-2 text-center"
+        >
+          Press Enter to send. Use Shift + Enter for a new line.
         </p>
       </div>
     </div>

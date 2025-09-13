@@ -1,6 +1,6 @@
 # TripSmith AI Travel Planner - Development Guide
 
-> **Status**: Production-ready MVP with optimized codebase architecture  
+> **Status**: Production-ready MVP with optimized architecture, foundational accessibility complete, and recent dependency/performance cleanup  
 > **Stack**: Next.js 15, React 19, TypeScript, Supabase, OpenAI GPT-4, Three.js  
 > **Theme**: Cinematic dark theme with glass morphism and 3D visualizations
 
@@ -45,16 +45,33 @@ TripSmith is an AI-powered travel planning application that combines:
 
 ### **Phase Complete: Code Quality & Architecture Optimization**
 
-**Major Code Simplification Achievements:**
+**Major Code Simplification & Cleanup Achievements:**
 
 - ✅ **61% size reduction** in message-bubble.tsx (273→104 lines)
 - ✅ **15% size reduction** in mature-trip-page.tsx (320→273 lines)
 - ✅ **Zero code duplication** across all chat components
-- ✅ **4 new shared utilities** (419 lines) serving all components
+- ✅ **Core shared utilities consolidated** (itinerary + streaming + markdown components)
+- ✅ **Removed obsolete PDF export & table parsing layer** reducing bundle & complexity
+- ✅ **Eliminated framer-motion entrance animations on trip pages to improve responsiveness**
 - ✅ **Runtime error fixes** with proper null checking
 - ✅ **Enhanced type safety** throughout the codebase
+- ✅ **Pruned unused dependencies** (`openai`, `tailwindcss-animate`, `tw-animate-css`, legacy PDF libs) reducing install & bundle surface
+- ✅ **Consolidated global styles** to single `app/globals.css` (removed duplicate `styles/globals.css`)
 
-**System Status:** Optimized architecture ready for Feature 3 implementation
+### **Phase Complete: Foundational Accessibility Enhancements**
+
+Baseline WCAG 2.1 AA-aligned improvements shipped (structure, keyboard, assistive tech, contrast):
+
+- Landmarks & navigation: Skip link, `main` landmark, scoped regions (chat log, itinerary, dashboard results)
+- Keyboard operability: Roving focus menu, modal focus trap + ESC, calendar popover autofocus & focus restore
+- Screen reader parity: Dual live regions (polite streaming, assertive errors), `role="log"` transcript, `role="status"` spinners, itinerary phase announcements
+- Contrast normalization: Semantic `.text-contrast-*` utilities replacing opacity-based whites
+- Noise reduction: Decorative icons hidden, dynamic avatar alt text, cleaned null assertions
+- Stability: Rebuilt `trip-history-dashboard.tsx` with accessible list semantics & live filtered count updates
+
+Deferred (Intentional): Automated a11y tooling (axe / Playwright) to minimize current dependency surface.
+
+**System Status:** Architecture + accessibility foundation ready for Feature 3 implementation.
 
 ### **Next Phase: Feature 3 - Smart Suggestions Engine**
 
@@ -70,7 +87,7 @@ TripSmith is an AI-powered travel planning application that combines:
 ### **Core Technologies**
 
 - **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS with glass morphism design
+- **Styling**: Tailwind CSS (single consolidated `app/globals.css`) with glass morphism design
 - **3D Graphics**: Three.js for Earth globe visualization
 - **AI Integration**: OpenAI GPT-4 via Vercel AI SDK
 - **Database**: Supabase (PostgreSQL with real-time features)
@@ -200,12 +217,13 @@ npm run dev # Runs on localhost:3001 (3000 often occupied)
 - TypeScript/ESLint errors ignored for faster builds (`next.config.mjs`)
 - Images set to `unoptimized: true`
 - Dynamic imports used for SSR-sensitive components
+- Dependency footprint trimmed after audit (see Cleanup Achievements above)
 
 ---
 
 ## 🏗️ Code Organization
 
-### **Shared Utility Architecture**
+### **Shared Utility Architecture & Cleanup Highlights**
 
 The codebase features a comprehensive shared utility architecture that eliminates code duplication and provides a maintainable foundation for future development.
 
@@ -220,17 +238,7 @@ The codebase features a comprehensive shared utility architecture that eliminate
 
 **Used by**: chat-interface.tsx, mature-trip-page.tsx, streaming-utils.ts
 
-#### **lib/markdown-utils.ts** (127 lines)
-
-**Purpose**: Table processing utilities for markdown content in chat messages
-**Key Functions**:
-
-- `processMarkdownContent(content)`: Converts markdown tables to styled HTML with placeholders
-- `splitContentByTables(content)`: Splits content by table placeholders for rendering
-- `isTablePlaceholder(part)`: Safely detects and extracts table placeholder indices
-- `processMarkdownLinks(text)`: Processes markdown links and formatting in table cells
-
-**Used by**: message-bubble.tsx
+<!-- Removed: lib/markdown-utils.ts (retired after adopting JSON-only itinerary & simplified markdown rendering) -->
 
 #### **lib/markdown-components.tsx** (96 lines)
 
@@ -260,7 +268,7 @@ The codebase features a comprehensive shared utility architecture that eliminate
 - **Type Safety**: Enhanced error handling with proper null checking and TypeScript interfaces
 - **Maintainable Design**: Clear separation of concerns with documented utility functions
 - **Consistent APIs**: Unified function signatures and return types across utilities
-- **Performance**: Reduced bundle size by centralizing common code
+- **Performance**: Reduced bundle size by centralizing common code + removing deprecated PDF/table layers & unused animation dependencies
 - **Extensibility**: Modular design makes adding new features straightforward
 
 ### **File Structure**
@@ -273,7 +281,7 @@ app/
 │   ├── page.tsx             # Trip history dashboard
 │   └── [tripId]/page.tsx    # Individual trip pages with clean URLs
 components/
-├── chat-interface.tsx       # Main orchestrator component with auto-redirect (563 lines)
+├── chat-interface.tsx       # Main orchestrator component with auto-redirect (candidate for fuller streaming-utils adoption) (563 lines)
 ├── earth-visualization.tsx  # Three.js wrapper with SSR safety
 ├── message-bubble.tsx       # Simplified markdown renderer (104 lines - 61% reduction)
 ├── trip-history-dashboard.tsx # Main dashboard with search/filter
@@ -291,11 +299,9 @@ components/
 │   └── loading-spinner.tsx # Consistent loading states
 lib/
 ├── itinerary-utils.ts      # Unified JSON extraction logic (58 lines)
-├── markdown-utils.ts       # Table processing utilities (127 lines)
 ├── markdown-components.tsx # Reusable ReactMarkdown config (96 lines)
 ├── streaming-utils.ts      # Chat streaming handlers (138 lines)
 ├── chat-utils.ts           # Message generators and trip context formatting
-├── pdf-utils.ts            # PDF export functionality
 ├── trip-service.ts         # Enhanced database service with filtering
 ```
 
@@ -303,8 +309,49 @@ lib/
 
 - **message-bubble.tsx**: 273 → 104 lines (61% reduction)
 - **mature-trip-page.tsx**: 320 → 273 lines (15% reduction)
-- **Total new utilities**: 419 lines serving all components
+- **Total shared utilities**: 3 core + chat-utils (after deprecations)
 - **Zero code duplication** across chat components
+
+---
+
+## ♿ Accessibility Implementation Summary
+
+### Objectives
+
+Establish a robust baseline (WCAG 2.1 AA-aligned) covering perceivable, operable, understandable, and robust principles without adding automated test tooling yet.
+
+### Implemented Layers
+
+1. Structure & Landmarks: Skip link, `main` landmark, region scoping (chat log, itinerary, dashboard results).
+2. Keyboard: Roving focus in user menu, modal focus trap + ESC, popover autofocus & focus restoration.
+3. Live Regions: Dual strategy — polite for streaming content; assertive only for critical errors (trip load / chat failure); phased itinerary announcements.
+4. Contrast: Introduced `.text-contrast-*`, `.placeholder-contrast`, `.focus-ring-contrast`; removed opacity-based white text utilities.
+5. Semantics & Noise Reduction: Decorative icons hidden, improved alt text, dynamic avatar alt, consistent form labeling, safe null checks.
+6. Stability: Reconstructed `trip-history-dashboard.tsx` with accessible list semantics & live filtered count announcements after corruption.
+
+### Utility Classes (defined in `globals.css`)
+
+```
+.text-contrast-secondary   // High legibility secondary text
+.text-contrast-tertiary    // Standard metadata
+.text-contrast-quaternary  // Muted hints / low emphasis
+.placeholder-contrast      // Consistent placeholder styling
+.focus-ring-contrast       // Unified focus outline on dark surfaces
+```
+
+### Guidelines
+
+- Announce only major streaming phases (start/update/completion) to reduce screen reader verbosity.
+- Maintain a single global assertive region; avoid nesting inside polite containers.
+- Prefer semantic contrast tiers over ad-hoc opacity classes.
+- Always restore originating focus after transient UI closes (modal/popover).
+
+### Future (Optional) Enhancements
+
+- High contrast / reduced motion toggles.
+- Automated accessibility regression audits (axe-core + Playwright) with CI gate.
+- Persisted accessibility preferences per user.
+- Expanded `aria-describedby` chaining for multi-line form hints.
 
 ---
 
@@ -450,7 +497,7 @@ transition: opacity 1.5s ease-in-out;
 8. **Cursor Styles**: All interactive elements need explicit `cursor-pointer` for better UX
 9. **Layout Overlaps**: Position elements carefully to avoid logo/menu conflicts
 10. **Route Structure**: Use dynamic routes `/trips/[tripId]` for clean URLs vs query parameters
-11. **Performance**: Avoid framer-motion loading animations on trip pages - causes jitter and slow performance
+11. **Performance**: Avoid framer-motion loading animations on trip pages - now removed (static rendering via `disableAnimation` prop)
 12. **3D Components**: Only use AnimatedBackground and EarthVisualization on homepage, not trip pages
 13. **Animation Coordination**: Use custom events with requestAnimationFrame for synchronized animations
 14. **Auth Optimization**: Use single useAuth() pattern instead of multiple auth checks per page
@@ -460,6 +507,12 @@ transition: opacity 1.5s ease-in-out;
 18. **Null Safety**: Use proper null checking instead of non-null assertions (!) for runtime safety
 19. **API Consistency**: Update all components when changing shared utility function signatures
 20. **Type Safety**: Prefer returning structured objects from utilities rather than primitive types
+21. **Live Regions Discipline**: Single assertive region globally; stream incremental content via polite region.
+22. **Contrast Tokens**: Use `.text-contrast-*` & `.placeholder-contrast` instead of opacity-based white text.
+23. **Focus Restoration**: Return focus to trigger element after modal/popup dismissal.
+24. **Decorative Icons**: Apply `aria-hidden="true"` and omit `title` to reduce SR noise.
+25. **Itinerary Streaming**: Announce phase shifts (start, update, completion) not every token.
+26. **Avatar Alt Text**: Dynamically derive alt from user identity; blank alt for purely decorative images.
 
 ---
 
@@ -467,22 +520,21 @@ transition: opacity 1.5s ease-in-out;
 
 ### **Next Phase: Feature 3 - Smart Suggestions Engine**
 
-- AI-powered location recommendations based on user preferences
-- Weather-aware activity suggestions
-- Budget optimization suggestions
-- Seasonal activity recommendations
+- Implement AI-powered suggestions to enhance trip planning in prompt window by providing custom forms for flight selection, etc.
+- propose ideas to developer in chat, discuss to refine.
+- Weather and strike aware travel suggestions
+- Smart links for flights (google flights), hotels (google maps), venues (google maps), travel routes in cities (google maps) in itinerary.
 
 ### **Future Development Pipeline**
 
-- **Feature 4**: User preferences for travel purpose, budget, activity types, home timezone
+- **Feature 4**: User preferences for travel purpose, budget, activity types, home timezone in supabase.
+  - enhance initial prompt with user profile data.
 - **Feature 5**: Trip management: export (PDF, email), delete, rename
-- **Feature 6**: Smart links for flights, hotels, venues
-- **Feature 7**: Calendar Integration
-- **Feature 8**: Collaborative Trip Planning
+- **Feature 6**: Calendar Integration
 
 ### **Future Enhancements**
 
-- **Accessibility**: WCAG 2.1 AA compliance implementation
+- **Accessibility (Next)**: Optional automated tooling (axe / Playwright), high-contrast & reduced-motion toggles, persisted a11y preferences
 - **Analytics**: Plausible Analytics integration for privacy-focused tracking
 - **Monetization**: Stripe payments for premium features
 - **Admin Dashboard**: User management, analytics, and system monitoring
@@ -501,25 +553,43 @@ We recently completed a comprehensive code refactoring that significantly improv
 - **mature-trip-page.tsx**: 320 → 273 lines (**15% reduction**)
 - **chat-interface.tsx**: 598 → 563 lines (**6% reduction**)
 
-#### **New Shared Utilities Created:**
+#### **Current Shared Utilities:**
 
 - **lib/itinerary-utils.ts** (58 lines): Unified JSON itinerary extraction logic
-- **lib/markdown-utils.ts** (127 lines): Table processing utilities for chat messages
 - **lib/markdown-components.tsx** (96 lines): Reusable ReactMarkdown component configuration
 - **lib/streaming-utils.ts** (138 lines): Chat streaming response handlers
+- **lib/chat-utils.ts**: Message generators and trip context formatting
 
 #### **Benefits Achieved:**
 
 - ✅ **Zero Code Duplication**: Eliminated all duplicate functions across chat components
 - ✅ **Enhanced Type Safety**: Proper null checking and error handling throughout
 - ✅ **Improved Maintainability**: Clear separation of concerns with documented utilities
-- ✅ **Better Performance**: Reduced bundle size by centralizing common code
-- ✅ **Runtime Stability**: Fixed null pointer exceptions in table processing
+- ✅ **Better Performance**: Reduced bundle size (centralized shared code + removed PDF/table parsing layer + pruned unused animation/OpenAI deps) and dropped runtime animations on trip pages
+- ✅ **Runtime Stability**: Removed fragile table parsing layer; simplified markdown path
 - ✅ **Future-Ready Architecture**: Modular design for easier feature additions
 
 The codebase is now significantly more maintainable and provides a solid foundation for implementing Feature 3 and beyond.
 
 ---
+
+## 🧪 Lightweight Smoke Tests & Validation
+
+To ensure itinerary JSON extraction doesn't silently break, a minimal script `scripts/itinerary-smoke.ts` is included.
+
+Run:
+
+```bash
+npm run test:itinerary
+```
+
+It validates that a fenced JSON block is detected and parsed, exiting non-zero if extraction fails. Extend or replace with a formal test harness later if desired.
+
+### Suggested Future Validation
+
+- Add minimal unit tests for streaming partial JSON edge cases
+- CI step: run `npm run test:itinerary` (and future a11y regression suite)
+- Optional bundle analysis: `ANALYZE=true next build` to watch size drift post Feature 3
 
 ## 📋 Quick Start for New Contributors
 

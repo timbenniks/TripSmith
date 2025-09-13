@@ -70,7 +70,7 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
               <h3 className="font-semibold text-white text-lg mb-1 group-hover:text-purple-300 transition-colors">
                 {trip.name}
               </h3>
-              <div className="flex items-center text-white/70 text-sm mb-2">
+              <div className="flex items-center text-contrast-tertiary text-sm mb-2">
                 <MapPin className="h-4 w-4 mr-1" />
                 {trip.destination}
               </div>
@@ -88,18 +88,18 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
           </div>
 
           {/* Travel Dates */}
-          <div className="flex items-center text-white/60 text-sm mb-3">
+          <div className="flex items-center text-contrast-tertiary text-sm mb-3">
             <Calendar className="h-4 w-4 mr-2" />
             {travelDates}
           </div>
 
           {/* Purpose */}
-          <div className="text-white/80 text-sm mb-4 flex-1">
+          <div className="text-contrast-secondary text-sm mb-4 flex-1">
             <span className="font-medium">Purpose:</span> {trip.purpose}
           </div>
 
           {/* Quick Stats */}
-          <div className="flex items-center gap-4 text-xs text-white/60 mb-4">
+          <div className="flex items-center gap-4 text-xs text-contrast-tertiary mb-4">
             <div className="flex items-center gap-1">
               <MessageSquare className="h-3 w-3" />
               {messageCount} message{messageCount !== 1 ? "s" : ""}
@@ -115,7 +115,9 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
           {/* Itinerary Preview */}
           {hasItinerary && trip.itinerary_data && (
             <div className="bg-white/5 rounded-lg p-3 mb-4">
-              <div className="text-xs text-white/70 mb-2">Quick Preview:</div>
+              <div className="text-xs text-contrast-tertiary mb-2">
+                Quick Preview:
+              </div>
               <div className="space-y-1">
                 {trip.itinerary_data.flights &&
                   trip.itinerary_data.flights.length > 0 && (
@@ -152,7 +154,7 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-white/10">
-            <div className="flex items-center text-xs text-white/50">
+            <div className="flex items-center text-xs text-contrast-quaternary">
               <Clock className="h-3 w-3 mr-1" />
               Updated {lastUpdated}
             </div>

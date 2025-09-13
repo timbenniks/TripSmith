@@ -8,8 +8,7 @@ import { TripActionsHeader } from "./trip-actions-header";
 import { TripChatSidebar } from "./trip-chat-sidebar";
 import { TripItineraryDisplay } from "./trip-itinerary-display";
 import { UserMenu } from "@/components/user-menu";
-import { testPDFLibraries } from "@/lib/pdf-utils";
-import { extractItineraryData } from "@/lib/itinerary-utils";
+// Note: Itinerary extraction handled inside streaming-utils when handleItineraryGeneration=true
 import {
   handleStreamingResponse,
   createAssistantMessage,
@@ -48,14 +47,7 @@ export function MatureTripPage({
     initialTrip.itinerary_data ? true : false
   );
 
-  // Test PDF libraries on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      testPDFLibraries().then((result) => {
-        console.log("PDF libraries test result:", result);
-      });
-    }
-  }, []);
+  // (Removed PDF test: deprecated PDF export layer)
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
@@ -99,6 +91,7 @@ export function MatureTripPage({
       // Handle streaming with utility
       const { content: finalContent, itineraryData } =
         await handleStreamingResponse(response, assistantMessageObj.id, {
+          handleItineraryGeneration: true,
           onMessageUpdate: (messageId, content) => {
             setMessages((prev) =>
               prev.map((msg) =>
@@ -120,7 +113,9 @@ export function MatureTripPage({
       // Update current itinerary if we got new data
       if (itineraryData) {
         setCurrentItinerary(itineraryData);
-        // Save to database
+        // Auto-switch to itinerary panel on mobile for visibility
+        setShowItinerary(true);
+        // Persist itinerary
         await tripService.updateTripItineraryData(tripId, itineraryData);
       }
 
@@ -205,13 +200,13 @@ export function MatureTripPage({
 
         {/* Main Content - Two Panel Layout with proper height management */}
         <div className="flex-1 flex min-h-0 relative w-full px-2 sm:px-4 lg:px-8">
-          <div className="flex w-full max-w-screen-2xl mx-auto min-h-0 gap-0">
+          <div className="flex w-full max-w-[1700px] 2xl:max-w-[1800px] mx-auto min-h-0 gap-4 xl:gap-6">
             {/* Left Sidebar - Chat */}
             <div
               className={`
                 ${showItinerary ? "hidden lg:block" : "block"}
-                lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 
-                lg:min-w-[420px] lg:max-w-[680px] lg:flex-shrink-0
+                lg:w-[500px] xl:w-[600px] 2xl:w-[660px]
+                lg:min-w-[440px] lg:max-w-[700px] lg:flex-shrink-0
                 w-full
                 bg-black/20 backdrop-blur-2xl border-r border-white/30
                 h-full overflow-hidden
@@ -234,10 +229,10 @@ export function MatureTripPage({
             <div
               className={`
                 ${showItinerary ? "block" : "hidden lg:block"}
-                lg:flex-1 lg:min-w-0
-                w-full
+                lg:flex-1 lg:min-w-0 flex flex-col min-h-0
+                w-full h-full
                 bg-black/20 backdrop-blur-2xl
-                h-full overflow-hidden
+                overflow-hidden
               `}
               role="main"
               aria-label="Trip itinerary display"

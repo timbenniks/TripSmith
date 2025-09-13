@@ -120,8 +120,8 @@ export function TripItineraryDisplay({
 
   // Render the actual itinerary
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <ScrollArea className="flex-1">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      <ScrollArea className="flex-1 h-full">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

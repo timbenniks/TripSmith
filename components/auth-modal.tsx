@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabase";
@@ -80,8 +80,60 @@ export function AuthModal({
   }
 
   // Modal variant (original behavior)
+  // Focus trap & accessibility setup for modal variant
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    previouslyFocusedRef.current = document.activeElement as HTMLElement;
+    document.addEventListener("keydown", handleKeyDown);
+    // Focus first focusable element after mount
+    requestAnimationFrame(() => {
+      const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+    });
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [handleKeyDown]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-modal-title"
+      aria-describedby="auth-modal-description"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
@@ -89,7 +141,10 @@ export function AuthModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-black/20 backdrop-blur-2xl border border-white/30 rounded-2xl shadow-2xl ring-1 ring-white/20 p-6">
+      <div
+        ref={dialogRef}
+        className="relative w-full max-w-md bg-black/20 backdrop-blur-2xl border border-white/30 rounded-2xl shadow-2xl ring-1 ring-white/20 p-6"
+      >
         <style jsx>{`
           :global(.supabase-auth-ui_ui button[data-provider="github"] svg) {
             filter: brightness(0) invert(1);
@@ -106,16 +161,20 @@ export function AuthModal({
           size="icon"
           className="absolute right-4 top-4 text-white/70 hover:text-white hover:bg-white/10"
           onClick={onClose}
+          aria-label="Close authentication dialog"
         >
           <X className="h-4 w-4" />
         </Button>
 
         {/* Title */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2
+            id="auth-modal-title"
+            className="text-2xl font-bold text-white mb-2"
+          >
             Welcome to TripSmith
           </h2>
-          <p className="text-white/70">
+          <p id="auth-modal-description" className="text-white/70">
             Sign in to save your trips and preferences
           </p>
         </div>
