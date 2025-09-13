@@ -190,8 +190,20 @@ export function MatureTripPage({
 
         {/* Header */}
         <TripActionsHeader
+          tripId={trip.id}
           tripName={trip.name}
           destination={trip.destination}
+          status={trip.status}
+          onStatusChange={async (newStatus) => {
+            // Optimistic state update
+            setTrip((prev) => ({ ...prev, status: newStatus }));
+            const ok = await tripService.updateTripStatus(trip.id, newStatus);
+            if (!ok) {
+              // Revert if failed
+              setTrip((prev) => ({ ...prev, status: trip.status }));
+              alert('Failed to update status.');
+            }
+          }}
           onDelete={handleDelete}
           onDownloadPDF={handleDownloadPDF}
           onShare={handleShare}
