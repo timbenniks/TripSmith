@@ -224,7 +224,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
 
       setMessages((prev) => [...prev, assistantMessageObj]);
 
-      // Handle streaming response - simpler approach for JSON detection
+      // Handle streaming response - improved UX for JSON generation
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -234,21 +234,39 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
         if (chunk) {
           assistantMessage += chunk;
 
-          // For streaming, only show content if it doesn't contain JSON blocks
-          let displayContent = assistantMessage;
-          if (assistantMessage.includes("```json")) {
-            const jsonStart = assistantMessage.indexOf("```json");
-            // Only show content before JSON block during streaming
-            displayContent = assistantMessage.substring(0, jsonStart).trim();
-          }
+          // Check if we're generating JSON for an itinerary
+          const hasJsonStart = assistantMessage.includes("```json");
+          const hasJsonEnd =
+            assistantMessage.includes("}```") ||
+            assistantMessage.includes("}\n```");
 
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageObj.id
-                ? { ...msg, content: displayContent }
-                : msg
-            )
-          );
+          if (hasJsonStart && !hasJsonEnd) {
+            // We're in the middle of JSON generation - show loading animation
+            const preJsonContent = assistantMessage
+              .substring(0, assistantMessage.indexOf("```json"))
+              .trim();
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageObj.id
+                  ? {
+                      ...msg,
+                      content: preJsonContent || "Generating your itinerary...",
+                      isGeneratingItinerary: true,
+                    }
+                  : msg
+              )
+            );
+          } else if (!hasJsonStart) {
+            // Normal text streaming - show content as usual
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageObj.id
+                  ? { ...msg, content: assistantMessage }
+                  : msg
+              )
+            );
+          }
+          // If hasJsonStart && hasJsonEnd, we'll let the final processing handle it
         }
       }
 
@@ -265,6 +283,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
                   content: itineraryResult.displayContent,
                   itineraryData: itineraryResult.itineraryData,
                   isItinerary: true,
+                  isGeneratingItinerary: false, // Clear loading state
                 }
               : msg
           )
@@ -282,7 +301,11 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageObj.id
-              ? { ...msg, content: assistantMessage }
+              ? {
+                  ...msg,
+                  content: assistantMessage,
+                  isGeneratingItinerary: false,
+                }
               : msg
           )
         );

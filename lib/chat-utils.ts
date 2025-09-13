@@ -7,6 +7,7 @@ export interface Message {
   timestamp: Date;
   itineraryData?: any; // For structured itinerary data
   isItinerary?: boolean; // Flag to indicate this is a rendered itinerary
+  isGeneratingItinerary?: boolean; // Flag to show loading animation
 }
 
 export const formatTripContext = (details: TripDetails): string => {

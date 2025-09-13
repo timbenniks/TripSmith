@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { MessageBubble, Message } from "@/components/message-bubble";
+import { MessageBubble } from "@/components/message-bubble";
+import { Message } from "@/lib/chat-utils";
 import { ChatInput } from "@/components/chat-input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { MessageSquare, Send } from "lucide-react";
@@ -71,28 +72,6 @@ export function TripChatSidebar({
     setInput(e.target.value);
   };
 
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content);
-  };
-
-  const exportItinerary = (content: string) => {
-    if (typeof window === "undefined") return;
-    const blob = new Blob([content], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tripsmith-itinerary.md";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const exportItineraryAsPDF = async (content: string) => {
-    // PDF export functionality would go here
-    console.log("PDF export not yet implemented");
-  };
-
   return (
     <div className="h-full flex flex-col bg-black/20 backdrop-blur-2xl border-r border-white/30 overflow-hidden">
       {/* Sidebar Header */}
@@ -115,7 +94,7 @@ export function TripChatSidebar({
       {/* Messages Area */}
       <div className="flex-1 min-h-0 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full">
-          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4 min-w-0">
             {messages.length === 0 ? (
               <div className="text-center py-8">
                 <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-lg ring-1 ring-white/20 p-6">
@@ -130,13 +109,7 @@ export function TripChatSidebar({
               </div>
             ) : (
               messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  onCopy={copyToClipboard}
-                  onExport={exportItinerary}
-                  onExportPDF={exportItineraryAsPDF}
-                />
+                <MessageBubble key={message.id} message={message} />
               ))
             )}
 

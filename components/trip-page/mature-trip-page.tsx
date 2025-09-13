@@ -250,15 +250,17 @@ export function MatureTripPage({
         />
 
         {/* Main Content - Two Panel Layout with proper height management */}
-        <div className="flex-1 flex min-h-0 relative w-full px-2 sm:px-4 lg:px-6">
-          <div className="flex w-full max-w-7xl mx-auto min-h-0">
-            {/* Left Sidebar - Chat (30% on desktop, full width on mobile) */}
+        <div className="flex-1 flex min-h-0 relative w-full px-2 sm:px-4 lg:px-8">
+          <div className="flex w-full max-w-screen-2xl mx-auto min-h-0 gap-0">
+            {/* Left Sidebar - Chat */}
             <div
               className={`
-                w-full lg:w-[380px] xl:w-[420px] lg:min-w-[320px] lg:max-w-[480px]
-                ${showItinerary ? "hidden lg:flex" : "flex"}
+                ${showItinerary ? "hidden lg:block" : "block"}
+                lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 
+                lg:min-w-[420px] lg:max-w-[680px] lg:flex-shrink-0
+                w-full
                 bg-black/20 backdrop-blur-2xl border-r border-white/30
-                flex-col h-full overflow-hidden
+                h-full overflow-hidden
               `}
               role="complementary"
               aria-label="Trip chat sidebar"
@@ -274,17 +276,14 @@ export function MatureTripPage({
               />
             </div>
 
-            {/* Right Panel - Itinerary Display (flexible width on desktop, toggleable on mobile) */}
+            {/* Right Panel - Itinerary Display */}
             <div
               className={`
-                lg:flex lg:flex-1 lg:min-w-0
-                ${
-                  showItinerary
-                    ? "flex absolute inset-2 sm:inset-4 lg:inset-0 z-10 lg:relative lg:z-auto"
-                    : "hidden lg:flex"
-                }
+                ${showItinerary ? "block" : "hidden lg:block"}
+                lg:flex-1 lg:min-w-0
+                w-full
                 bg-black/20 backdrop-blur-2xl
-                flex-col h-full overflow-hidden lg:ml-0
+                h-full overflow-hidden
               `}
               role="main"
               aria-label="Trip itinerary display"
