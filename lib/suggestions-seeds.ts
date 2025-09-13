@@ -11,9 +11,9 @@ export const seasonalByMonth: Record<number, string[]> = {
   7: ["High season onset", "Heat management & hydration planning"],
   8: ["Peak summer travel", "Consider indoor afternoon buffers"],
   9: ["Late summer → early autumn shift", "Good window for outdoor morning activities"],
- 10: ["Autumn foliage early wave (higher latitudes)", "Cooling evenings"],
- 11: ["Shoulder season again—reduced lines", "Early holiday illumination setup"],
- 12: ["Holiday illumination peak", "Short daylight—optimize daylight blocks"],
+  10: ["Autumn foliage early wave (higher latitudes)", "Cooling evenings"],
+  11: ["Shoulder season again—reduced lines", "Early holiday illumination setup"],
+  12: ["Holiday illumination peak", "Short daylight—optimize daylight blocks"],
 };
 
 export const etiquetteBasics: Record<string, string[]> = {

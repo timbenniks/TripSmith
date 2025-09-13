@@ -27,6 +27,7 @@ import {
   hasCompleteItinerary,
   getPreJsonContent,
 } from "@/lib/itinerary-utils";
+import { parseUiDirectives } from "@/lib/ui-directives-utils"; // ensure hidden ui_directives blocks are stripped
 
 interface ChatInterfaceProps {
   tripDetails?: TripDetails;
@@ -251,8 +252,14 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
         }
       }
 
-      // After streaming is complete, check for itinerary data
-      const itineraryResult = extractItineraryData(assistantMessage);
+      // After streaming is complete, first strip any ui_directives control block so end users never see it
+      const {
+        cleanedContent: contentWithoutDirectives,
+        uiDirectives: _uiDirectives, // currently unused in legacy chat-interface
+      } = parseUiDirectives(assistantMessage);
+
+      // Then check for itinerary data on the cleaned content
+      const itineraryResult = extractItineraryData(contentWithoutDirectives);
 
       if (itineraryResult.hasItinerary) {
         // This is an itinerary response - create a special message with the data
@@ -285,7 +292,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
             msg.id === assistantMessageObj.id
               ? {
                   ...msg,
-                  content: assistantMessage,
+                  content: contentWithoutDirectives,
                   isGeneratingItinerary: false,
                 }
               : msg
@@ -296,11 +303,11 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
 
       // Legacy handling for old hybrid format (can be removed later)
       let structuredData: any = null;
-      let displayContent = assistantMessage;
+      let displayContent = contentWithoutDirectives; // work from already-cleaned content
 
       try {
         // Look for JSON blocks in the complete response
-        const jsonMatch = assistantMessage.match(
+        const jsonMatch = contentWithoutDirectives.match(
           /```json\s*(\{[\s\S]*?\})\s*```/
         );
         if (jsonMatch) {
@@ -329,7 +336,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
           jsonError
         );
         // If JSON parsing fails, just show the original response
-        displayContent = assistantMessage;
+        displayContent = contentWithoutDirectives;
       }
 
       // After streaming is complete, show the full content (including any buffered tables)
@@ -346,7 +353,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
       if (currentTripId) {
         const finalMessages = updatedMessages.concat({
           ...assistantMessageObj,
-          content: displayContent, // Save the markdown version
+          content: displayContent, // Save the markdown version (no ui_directives)
         });
         console.log(
           "Saving messages to trip:",
@@ -654,7 +661,9 @@ Please welcome me and let me know how you can help with my trip planning.`;
                 daySpan={tripDaySpan}
                 itineraryData={latestItineraryData}
                 onPrefillPrompt={(text) => {
-                  setInput((prev) => (prev ? prev.replace(/\s*$/, '\n') + text : text));
+                  setInput((prev) =>
+                    prev ? prev.replace(/\s*$/, "\n") + text : text
+                  );
                 }}
                 onApplyPrompt={(prompt) => {
                   sendMessage(prompt);

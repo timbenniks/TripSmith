@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { tripService, Trip } from "@/lib/trip-service";
-import { logError } from '@/lib/error-logger';
+import { logError } from "@/lib/error-logger";
 import { Message } from "@/components/message-bubble";
 import { TripActionsHeader } from "./trip-actions-header";
 import { TripChatSidebar } from "./trip-chat-sidebar";
@@ -15,6 +15,7 @@ import {
   createAssistantMessage,
   makeChatRequest,
 } from "@/lib/streaming-utils";
+import { UiDirectivesPayload } from "@/lib/types";
 
 interface TripDetails {
   timezone: string;
@@ -92,26 +93,29 @@ export function MatureTripPage({
       setMessages((prev) => [...prev, assistantMessageObj]);
 
       // Handle streaming with utility
-      const { content: finalContent, itineraryData } =
-        await handleStreamingResponse(response, assistantMessageObj.id, {
-          handleItineraryGeneration: true,
-          onMessageUpdate: (messageId, content) => {
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === messageId ? { ...msg, content } : msg
-              )
-            );
-          },
-        });
+      const {
+        content: finalContent,
+        itineraryData,
+        uiDirectives,
+      } = await handleStreamingResponse(response, assistantMessageObj.id, {
+        handleItineraryGeneration: true,
+        onMessageUpdate: (messageId, content) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId ? { ...msg, content } : msg
+            )
+          );
+        },
+      });
 
       // Create final messages array
-      const finalMessages = updatedMessages.concat([
-        {
-          ...assistantMessageObj,
-          content: finalContent,
-          itineraryData: itineraryData,
-        },
-      ]);
+      const finalAssistant = {
+        ...assistantMessageObj,
+        content: finalContent,
+        itineraryData: itineraryData,
+        uiDirectives: uiDirectives,
+      } as typeof assistantMessageObj & { uiDirectives?: UiDirectivesPayload };
+      const finalMessages = updatedMessages.concat([finalAssistant]);
 
       // Update current itinerary if we got new data
       if (itineraryData) {
@@ -186,7 +190,10 @@ export function MatureTripPage({
         router.push("/trips");
       } catch (error) {
         console.error("Failed to delete trip:", error);
-        logError(error, { source: 'MatureTripPage', extra: { action: 'deleteTrip', tripId } });
+        logError(error, {
+          source: "MatureTripPage",
+          extra: { action: "deleteTrip", tripId },
+        });
         alert("Failed to delete trip. Please try again.");
       }
     }
@@ -305,6 +312,7 @@ export function MatureTripPage({
                 tripDetails={tripDetails}
                 isLoading={isLoading}
                 onSendMessage={sendMessage}
+                currentItinerary={currentItinerary}
               />
             </div>
 

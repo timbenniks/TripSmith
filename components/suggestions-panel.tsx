@@ -70,11 +70,7 @@ export function SuggestionsPanel({
   }, [open, state, generate]);
 
   return (
-    <div
-      className="mt-6"
-      aria-labelledby="suggestions-heading"
-      role="region"
-    >
+    <div className="mt-6" aria-labelledby="suggestions-heading" role="region">
       <div className="flex items-center justify-between mb-3">
         <h4
           id="suggestions-heading"
@@ -89,47 +85,57 @@ export function SuggestionsPanel({
             </span>
           )}
           <button
-            onClick={() => setOpen(o => !o)}
+            onClick={() => setOpen((o) => !o)}
             className="text-[11px] px-2 py-1 rounded-md border border-white/15 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
             aria-expanded={open}
           >
-            {open ? 'Hide' : 'Show'}
+            {open ? "Hide" : "Show"}
           </button>
         </div>
       </div>
-      {!open && state === 'idle' && (
+      {!open && state === "idle" && (
         <button
           onClick={() => setOpen(true)}
           className="w-full text-left group relative overflow-hidden rounded-lg border border-white/15 bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/[0.04] backdrop-blur-xl px-4 py-3 transition-colors"
         >
-          <span className="block text-[12px] font-medium text-white/80 mb-1">Generate Suggestions</span>
-          <span className="block text-[11px] text-white/50">Get contextual ideas to refine flights, lodging and schedule.</span>
+          <span className="block text-[12px] font-medium text-white/80 mb-1">
+            Generate Suggestions
+          </span>
+          <span className="block text-[11px] text-white/50">
+            Get contextual ideas to refine flights, lodging and schedule.
+          </span>
         </button>
       )}
       {open && (
         <div className="rounded-xl border border-white/15 bg-black/25 backdrop-blur-2xl ring-1 ring-white/10 p-4 space-y-4">
-          {state === 'loading' && (
+          {state === "loading" && (
             <div className="flex items-center gap-3 text-[12px] text-white/60">
               <LoadingSpinner size="sm" />
               <span>Generating smart suggestions…</span>
             </div>
           )}
-          {state === 'error' && (
+          {state === "error" && (
             <div className="text-[12px] rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 flex items-center justify-between">
-              <span className="text-red-200/90">Failed to generate suggestions.</span>
+              <span className="text-red-200/90">
+                Failed to generate suggestions.
+              </span>
               <button
                 onClick={() => canRegenerate() && generate()}
                 disabled={!canRegenerate()}
                 className="text-[11px] underline decoration-dotted hover:decoration-solid text-red-200/80 hover:text-red-100 disabled:opacity-40"
-              >Retry</button>
+              >
+                Retry
+              </button>
             </div>
           )}
-          {state === 'ready' && suggestions.length === 0 && (
-            <div className="text-[12px] text-white/55">No suggestions available right now.</div>
+          {state === "ready" && suggestions.length === 0 && (
+            <div className="text-[12px] text-white/55">
+              No suggestions available right now.
+            </div>
           )}
-          {state === 'ready' && suggestions.length > 0 && (
+          {state === "ready" && suggestions.length > 0 && (
             <ul className="grid md:grid-cols-2 gap-3" role="list">
-              {suggestions.map(s => (
+              {suggestions.map((s) => (
                 <li
                   key={s.id}
                   className="group relative flex flex-col rounded-lg border border-white/15 bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/[0.05] transition-colors p-3"
@@ -142,7 +148,11 @@ export function SuggestionsPanel({
                       className="px-2 py-0.5 rounded-full text-[9px] tracking-wide uppercase border border-white/15 bg-white/5 text-white/45 group-hover:text-white/80 group-hover:border-white/30 transition-colors"
                       aria-label={`Source: ${s.source}`}
                     >
-                      {s.source === 'deterministic' ? 'Seed' : s.source === 'ai' ? 'AI' : 'Hybrid'}
+                      {s.source === "deterministic"
+                        ? "Seed"
+                        : s.source === "ai"
+                        ? "AI"
+                        : "Hybrid"}
                     </span>
                   </div>
                   <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">
@@ -150,22 +160,31 @@ export function SuggestionsPanel({
                   </p>
                   <div className="flex items-center justify-end mt-auto pt-1">
                     <button
-                      onClick={() => onApply(s.actionPrompt, { suggestionId: s.id })}
+                      onClick={() =>
+                        onApply(s.actionPrompt, { suggestionId: s.id })
+                      }
                       className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-purple-600/25 hover:bg-purple-600/45 border border-purple-400/30 text-purple-200 hover:text-white transition-colors shadow-sm"
-                    >Apply</button>
+                    >
+                      Apply
+                    </button>
                   </div>
                 </li>
               ))}
             </ul>
           )}
-          {open && state === 'ready' && (
+          {open && state === "ready" && (
             <div className="flex items-center justify-between pt-1">
-              <p className="text-[10px] text-white/35">Adaptive set · {suggestions.length} item{suggestions.length === 1 ? '' : 's'}</p>
+              <p className="text-[10px] text-white/35">
+                Adaptive set · {suggestions.length} item
+                {suggestions.length === 1 ? "" : "s"}
+              </p>
               <button
                 onClick={() => canRegenerate() && generate()}
                 disabled={!canRegenerate()}
                 className="text-[11px] text-white/55 hover:text-white/90 underline decoration-dotted hover:decoration-solid disabled:opacity-30"
-              >Generate again</button>
+              >
+                Generate again
+              </button>
             </div>
           )}
         </div>
