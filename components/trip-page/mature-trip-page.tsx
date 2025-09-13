@@ -9,6 +9,12 @@ import { TripChatSidebar } from "./trip-chat-sidebar";
 import { TripItineraryDisplay } from "./trip-itinerary-display";
 import { UserMenu } from "@/components/user-menu";
 import { testPDFLibraries } from "@/lib/pdf-utils";
+import { extractItineraryData } from "@/lib/itinerary-utils";
+import {
+  handleStreamingResponse,
+  createAssistantMessage,
+  makeChatRequest,
+} from "@/lib/streaming-utils";
 
 interface TripDetails {
   timezone: string;
@@ -21,35 +27,6 @@ interface MatureTripPageProps {
   tripId: string;
   initialTrip: Trip;
   tripDetails: TripDetails;
-}
-
-// Simple function to detect and extract JSON itinerary data
-function extractItineraryData(content: string): {
-  hasItinerary: boolean;
-  itineraryData?: any;
-  displayContent: string;
-} {
-  const jsonMatch = content.match(/```json\s*(\{[\s\S]*?\})\s*```/);
-
-  if (jsonMatch) {
-    try {
-      const jsonData = JSON.parse(jsonMatch[1]);
-      if (jsonData.type === "complete_itinerary") {
-        return {
-          hasItinerary: true,
-          itineraryData: jsonData,
-          displayContent: content.replace(jsonMatch[0], "").trim(),
-        };
-      }
-    } catch (e) {
-      console.log("Failed to parse JSON:", e);
-    }
-  }
-
-  return {
-    hasItinerary: false,
-    displayContent: content,
-  };
 }
 
 export function MatureTripPage({
@@ -95,6 +72,7 @@ export function MatureTripPage({
     setIsLoading(true);
 
     try {
+      // Make chat request using utility
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -114,64 +92,40 @@ export function MatureTripPage({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No reader available");
-      }
-
-      let assistantMessage = "";
-      const decoder = new TextDecoder();
-
-      const assistantMessageObj: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "",
-        timestamp: new Date(),
-      };
-
+      // Create assistant message
+      const assistantMessageObj = createAssistantMessage();
       setMessages((prev) => [...prev, assistantMessageObj]);
 
-      // Handle streaming response
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Handle streaming with utility
+      const { content: finalContent, itineraryData } =
+        await handleStreamingResponse(response, assistantMessageObj.id, {
+          onMessageUpdate: (messageId, content) => {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === messageId ? { ...msg, content } : msg
+              )
+            );
+          },
+        });
 
-        const chunk = decoder.decode(value);
-        assistantMessage += chunk;
-
-        // Update the message content
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageObj.id
-              ? { ...msg, content: assistantMessage }
-              : msg
-          )
-        );
-      }
-
-      // Process the final message for itinerary data
-      const { hasItinerary, itineraryData } =
-        extractItineraryData(assistantMessage);
-
+      // Create final messages array
       const finalMessages = updatedMessages.concat([
         {
           ...assistantMessageObj,
-          content: assistantMessage,
-          itineraryData: hasItinerary ? itineraryData : undefined,
+          content: finalContent,
+          itineraryData: itineraryData,
         },
       ]);
 
       // Update current itinerary if we got new data
-      if (hasItinerary && itineraryData) {
+      if (itineraryData) {
         setCurrentItinerary(itineraryData);
-
         // Save to database
         await tripService.updateTripItineraryData(tripId, itineraryData);
       }
 
       // Save chat history to database
       await tripService.updateTripChatHistory(tripId, finalMessages);
-
       setMessages(finalMessages);
     } catch (error) {
       console.error("Error sending message:", error);

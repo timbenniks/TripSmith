@@ -19,42 +19,15 @@ import { exportToPDF, testPDFLibraries } from "@/lib/pdf-utils";
 import { tripService } from "@/lib/trip-service";
 import { useAuth } from "@/components/auth-provider";
 import { AuthModal } from "@/components/auth-modal";
+import {
+  extractItineraryData,
+  hasCompleteItinerary,
+  getPreJsonContent,
+} from "@/lib/itinerary-utils";
 
 interface ChatInterfaceProps {
   tripDetails?: TripDetails;
   resumeTripId?: string | null;
-}
-
-// Simple function to detect and extract JSON itinerary data
-function extractItineraryData(content: string): {
-  hasItinerary: boolean;
-  itineraryData?: any;
-  displayContent: string;
-} {
-  const jsonMatch = content.match(/```json\s*(\{[\s\S]*?\})\s*```/);
-
-  if (jsonMatch) {
-    try {
-      const jsonData = JSON.parse(jsonMatch[1]);
-      if (jsonData.type === "complete_itinerary") {
-        // This is an itinerary - hide the JSON and return the data
-        const beforeJson = content.substring(0, content.indexOf("```json"));
-        return {
-          hasItinerary: true,
-          itineraryData: jsonData,
-          displayContent:
-            beforeJson.trim() || "Here's your complete itinerary:",
-        };
-      }
-    } catch (e) {
-      console.log("Failed to parse JSON:", e);
-    }
-  }
-
-  return {
-    hasItinerary: false,
-    displayContent: content,
-  };
 }
 
 export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
@@ -236,15 +209,11 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
 
           // Check if we're generating JSON for an itinerary
           const hasJsonStart = assistantMessage.includes("```json");
-          const hasJsonEnd =
-            assistantMessage.includes("}```") ||
-            assistantMessage.includes("}\n```");
+          const isCompleteItinerary = hasCompleteItinerary(assistantMessage);
 
-          if (hasJsonStart && !hasJsonEnd) {
+          if (hasJsonStart && !isCompleteItinerary) {
             // We're in the middle of JSON generation - show loading animation
-            const preJsonContent = assistantMessage
-              .substring(0, assistantMessage.indexOf("```json"))
-              .trim();
+            const preJsonContent = getPreJsonContent(assistantMessage);
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === assistantMessageObj.id
@@ -266,7 +235,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
               )
             );
           }
-          // If hasJsonStart && hasJsonEnd, we'll let the final processing handle it
+          // If hasJsonStart && isCompleteItinerary, we'll let the final processing handle it
         }
       }
 
