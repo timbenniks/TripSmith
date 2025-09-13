@@ -11,13 +11,14 @@ import { TripForm, type TripDetails } from "@/components/trip-form";
 import { HybridResponse } from "@/lib/types";
 import { MessageBubble } from "@/components/message-bubble";
 import { ChatInput } from "@/components/chat-input";
+import { SuggestionsPanel } from '@/components/suggestions-panel';
 import { AnimatedBackground } from "@/components/animated-background";
 import { EarthVisualization } from "@/components/earth-visualization";
-import { useDelayedIndicator } from '@/hooks/useDelayedIndicator';
+import { useDelayedIndicator } from "@/hooks/useDelayedIndicator";
 import { UserMenu } from "@/components/user-menu";
 import { generateWelcomeMessage, type Message } from "@/lib/chat-utils";
 import { tripService } from "@/lib/trip-service";
-import { logError } from '@/lib/error-logger';
+import { logError } from "@/lib/error-logger";
 import { useAuth } from "@/components/auth-provider";
 import { AuthModal } from "@/components/auth-modal";
 import {
@@ -45,6 +46,8 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
     purpose: "",
   });
   const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+  const [tripDaySpan, setTripDaySpan] = useState<number | undefined>(undefined);
+  const [firstTravelDate, setFirstTravelDate] = useState<string | undefined>(undefined);
   const [showSavedIndicator, setShowSavedIndicator] = useState(false);
   const [liveMessage, setLiveMessage] = useState("");
   const [assertiveMessage, setAssertiveMessage] = useState(""); // For urgent/error announcements
@@ -136,7 +139,10 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
           }
         } catch (error) {
           console.error("Error loading trip:", error);
-          logError(error, { source: 'ChatInterface', extra: { action: 'loadTrip', resumeTripId } });
+          logError(error, {
+            source: "ChatInterface",
+            extra: { action: "loadTrip", resumeTripId },
+          });
           setAssertiveMessage(
             "Error loading trip data. Some information may be missing."
           );
@@ -369,7 +375,10 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
       }
     } catch (error) {
       console.error("Chat error:", error);
-      logError(error, { source: 'ChatInterface', extra: { action: 'chatSend', currentTripId } });
+      logError(error, {
+        source: "ChatInterface",
+        extra: { action: "chatSend", currentTripId },
+      });
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -390,6 +399,51 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   const handleFormSubmit = async (data: TripDetails, tripId?: string) => {
     setFormData(data);
     setCurrentTripId(tripId || null);
+    // Parse travelDates string for first date and span (expects format like: Sep 9, 2025 - Sep 12, 2025 OR Sep 9-12, 2025)
+    try {
+      if (data.travelDates) {
+        // Attempt to extract dates using simple patterns
+        // Normalize separators
+        const raw = data.travelDates.replace(/\u2013|\u2014/g, '-').trim();
+        // Patterns: "Sep 9, 2025 - Sep 12, 2025" OR "Sep 9-12, 2025"
+        let start: Date | null = null;
+        let end: Date | null = null;
+        const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+        const monthRegex = /([A-Za-z]{3,})/;
+        if (raw.match(/,\s*\d{4}\s*-\s*/)) {
+          // Form: Sep 9, 2025 - Sep 12, 2025
+          const parts = raw.split(/-+/);
+          if (parts.length === 2) {
+            const left = parts[0].trim();
+            const right = parts[1].trim();
+            start = new Date(left);
+            end = new Date(right);
+          }
+        } else if (raw.match(/\d{1,2}-\d{1,2},\s*\d{4}$/)) {
+          // Form: Sep 9-12, 2025
+            const mMatch = raw.match(monthRegex);
+            const monthToken = mMatch ? mMatch[1].slice(0,3).toLowerCase() : '';
+            const monthIndex = months.indexOf(monthToken);
+            const rangeMatch = raw.match(/(\d{1,2})-(\d{1,2}),\s*(\d{4})/);
+            if (monthIndex >= 0 && rangeMatch) {
+              const y = parseInt(rangeMatch[3],10);
+              const d1 = parseInt(rangeMatch[1],10);
+              const d2 = parseInt(rangeMatch[2],10);
+              start = new Date(Date.UTC(y, monthIndex, d1));
+              end = new Date(Date.UTC(y, monthIndex, d2));
+            }
+        }
+        if (start && !isNaN(start.getTime())) {
+          setFirstTravelDate(start.toISOString().split('T')[0]);
+        }
+        if (start && end && !isNaN(end.getTime())) {
+          const diff = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+          if (diff > 0 && diff < 60) setTripDaySpan(diff);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed parsing travelDates for suggestion context', e);
+    }
     setShowForm(false);
 
     // Send an initial message to get the welcome response from AI
@@ -566,7 +620,10 @@ Please welcome me and let me know how you can help with my trip planning.`;
       {!loading && user && !showForm && (
         <div className="relative">
           {showSendDelay && (
-            <div className="absolute -top-4 left-1 text-[10px] text-white/40 flex items-center gap-1" aria-live="polite">
+            <div
+              className="absolute -top-4 left-1 text-[10px] text-white/40 flex items-center gap-1"
+              aria-live="polite"
+            >
               <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white/40" />
               thinking…
             </div>
@@ -577,6 +634,19 @@ Please welcome me and let me know how you can help with my trip planning.`;
             onSend={handleSubmit}
             isLoading={isLoading}
           />
+          {currentTripId && (
+            <div className="px-6 pb-8 -mt-1">
+              <SuggestionsPanel
+                tripId={currentTripId}
+                destination={formData.destination}
+                firstTravelDate={firstTravelDate}
+                daySpan={tripDaySpan}
+                onApply={(prompt) => {
+                  sendMessage(prompt);
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
