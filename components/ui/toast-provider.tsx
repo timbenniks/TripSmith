@@ -28,7 +28,13 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
 
   const push = useCallback((toast: Omit<AppToast, 'id'>) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, duration: 4000, variant: 'default', ...toast }]);
+    setToasts((prev) => {
+      const newToast: AppToast = { id, duration: 3000, variant: (toast as any).variant ?? 'default', ...toast };
+      const next = [...prev, newToast];
+      // Queue cap of 4: drop oldest
+      if (next.length > 4) next.shift();
+      return next;
+    });
   }, []);
 
   const remove = (id: string) => setToasts((p) => p.filter((t) => t.id !== id));
@@ -51,7 +57,7 @@ export function AppToastProvider({ children }: { children: ReactNode }) {
             <Toast.Root
               key={t.id}
               duration={t.duration}
-              className={`${baseGlass} data-[state=closed]:opacity-0 data-[state=closed]:translate-y-1 data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=end]:opacity-0 data-[swipe=end]:transition`}
+              className={`${baseGlass} data-[state=open]:animate-toast-in data-[state=closed]:animate-toast-out data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:animate-toast-swipe-cancel data-[swipe=end]:animate-toast-swipe-out`}
               onOpenChange={(open) => { if (!open) remove(t.id); }}
             >
               <div className={`relative z-10 pr-5 ${variantClass}`}>
