@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Trip } from "@/lib/trip-service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,11 +58,7 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
   const travelDates = trip.travel_dates?.formatted || "Dates TBD";
 
   return (
-    <motion.div
-      whileHover={{ y: -4, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2 }}
-    >
+    <div>
       <Card
         className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 h-full cursor-pointer group hover:border-purple-400/50 transition-all duration-300"
         onClick={onSelect}
@@ -172,6 +167,6 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
           </div>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }

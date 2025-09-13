@@ -50,32 +50,32 @@ export function TripItineraryDisplay({
   // If no itinerary data and no messages, show welcome state
   if (!itineraryData && !hasMessages) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex items-center justify-center p-4 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md"
+          className="text-center max-w-sm sm:max-w-md w-full"
         >
-          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
-            <div className="text-6xl mb-4">✈️</div>
-            <h3 className="text-xl font-semibold text-white mb-3">
+          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-6 sm:p-8">
+            <div className="text-4xl sm:text-6xl mb-4">✈️</div>
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-3">
               Welcome to Your Trip
             </h3>
             <div className="space-y-2 text-sm text-white/70 mb-6">
               <div className="flex items-center justify-center gap-2">
-                <MapPin className="h-4 w-4" />
-                {tripDetails.destination}
+                <MapPin className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{tripDetails.destination}</span>
               </div>
               {tripDetails.travelDates && (
                 <div className="flex items-center justify-center gap-2">
-                  <CalendarDays className="h-4 w-4" />
-                  {tripDetails.travelDates}
+                  <CalendarDays className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{tripDetails.travelDates}</span>
                 </div>
               )}
               {tripDetails.purpose && (
                 <div className="flex items-center justify-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  {tripDetails.purpose}
+                  <Clock className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{tripDetails.purpose}</span>
                 </div>
               )}
             </div>
@@ -120,35 +120,36 @@ export function TripItineraryDisplay({
 
   // Render the actual itinerary
   return (
-    <div className="h-full">
-      <ScrollArea className="h-full">
+    <div className="h-full flex flex-col overflow-hidden">
+      <ScrollArea className="flex-1">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-6"
+          className="p-3 sm:p-4 lg:p-6"
         >
           {/* Trip Header */}
-          <div className="mb-6">
-            <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-6">
+          <div className="mb-4 sm:mb-6">
+            <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-4 sm:p-6">
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-white mb-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
                   Your Trip Itinerary
                 </h2>
-                <div className="space-y-1 text-white/70">
+                <div className="space-y-1 text-white/70 text-sm">
                   <div className="flex items-center justify-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    {tripDetails.destination}
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{tripDetails.destination}</span>
                   </div>
                   {tripDetails.travelDates && (
                     <div className="flex items-center justify-center gap-2">
-                      <CalendarDays className="h-4 w-4" />
-                      {tripDetails.travelDates}
+                      <CalendarDays className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">
+                        {tripDetails.travelDates}
+                      </span>
                     </div>
                   )}
                   {tripDetails.purpose && (
                     <div className="flex items-center justify-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      {tripDetails.purpose}
+                      <span className="truncate">{tripDetails.purpose}</span>
                     </div>
                   )}
                 </div>
@@ -157,7 +158,7 @@ export function TripItineraryDisplay({
           </div>
 
           {/* Itinerary Content */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6 pb-4 sm:pb-6">
             <ItineraryRenderer data={itineraryData} />
           </div>
         </motion.div>

@@ -2,15 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { tripService, Trip } from "@/lib/trip-service";
 import { Message } from "@/components/message-bubble";
 import { TripActionsHeader } from "./trip-actions-header";
 import { TripChatSidebar } from "./trip-chat-sidebar";
 import { TripItineraryDisplay } from "./trip-itinerary-display";
 import { UserMenu } from "@/components/user-menu";
-import { AnimatedBackground } from "@/components/animated-background";
-import { EarthVisualization } from "@/components/earth-visualization";
 import { testPDFLibraries } from "@/lib/pdf-utils";
 
 interface TripDetails {
@@ -69,36 +66,10 @@ export function MatureTripPage({
   const [currentItinerary, setCurrentItinerary] = useState(
     initialTrip.itinerary_data
   );
-  const [showItinerary, setShowItinerary] = useState(false); // For mobile toggle
-  const [windowDimensions, setWindowDimensions] = useState({
-    width: 1200,
-    height: 800,
-  });
-  const [mounted, setMounted] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  // SSR safety and window dimensions
-  useEffect(() => {
-    setMounted(true);
-    setIsClient(true);
-
-    if (typeof window !== "undefined") {
-      setWindowDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-
-      const handleResize = () => {
-        setWindowDimensions({
-          width: window.innerWidth,
-          height: window.innerHeight,
-        });
-      };
-
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, []);
+  const [showItinerary, setShowItinerary] = useState(
+    // Default to chat on mobile if no itinerary, otherwise show itinerary
+    initialTrip.itinerary_data ? true : false
+  );
 
   // Test PDF libraries on mount
   useEffect(() => {
@@ -263,22 +234,7 @@ export function MatureTripPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
-      {/* Animated Background */}
-      {mounted && isClient && (
-        <AnimatedBackground
-          windowDimensions={windowDimensions}
-          mounted={mounted}
-        />
-      )}
-
-      {/* Earth Visualization - Fixed positioning behind content */}
-      {mounted && isClient && (
-        <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 translate-y-[70%] w-[72rem] h-[72rem] z-0 pointer-events-none">
-          <EarthVisualization mounted={mounted} isClient={isClient} />
-        </div>
-      )}
-
-      {/* Content overlay with proper z-index */}
+      {/* Content overlay */}
       <div className="relative z-10 h-screen flex flex-col">
         {/* User Menu */}
         <UserMenu />
@@ -294,59 +250,68 @@ export function MatureTripPage({
         />
 
         {/* Main Content - Two Panel Layout with proper height management */}
-        <div className="flex-1 flex min-h-0 relative max-w-7xl mx-auto w-full">
-          {/* Left Sidebar - Chat (30% on desktop, full width on mobile) */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={`
-              w-full lg:w-[30%] lg:min-w-[380px] lg:max-w-[450px] 
-              ${showItinerary ? "hidden lg:flex" : "flex"}
-              bg-black/20 backdrop-blur-2xl border-r border-white/10
-              flex-col h-full
-            `}
-          >
-            <TripChatSidebar
-              tripId={tripId}
-              messages={messages}
-              onNewMessage={handleNewMessage}
-              onItineraryUpdate={handleItineraryUpdate}
-              tripDetails={tripDetails}
-              isLoading={isLoading}
-              onSendMessage={sendMessage}
-            />
-          </motion.div>
+        <div className="flex-1 flex min-h-0 relative w-full px-2 sm:px-4 lg:px-6">
+          <div className="flex w-full max-w-7xl mx-auto min-h-0">
+            {/* Left Sidebar - Chat (30% on desktop, full width on mobile) */}
+            <div
+              className={`
+                w-full lg:w-[380px] xl:w-[420px] lg:min-w-[320px] lg:max-w-[480px]
+                ${showItinerary ? "hidden lg:flex" : "flex"}
+                bg-black/20 backdrop-blur-2xl border-r border-white/30
+                flex-col h-full overflow-hidden
+              `}
+              role="complementary"
+              aria-label="Trip chat sidebar"
+            >
+              <TripChatSidebar
+                tripId={tripId}
+                messages={messages}
+                onNewMessage={handleNewMessage}
+                onItineraryUpdate={handleItineraryUpdate}
+                tripDetails={tripDetails}
+                isLoading={isLoading}
+                onSendMessage={sendMessage}
+              />
+            </div>
 
-          {/* Right Panel - Itinerary Display (70% on desktop, toggleable on mobile) */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className={`
-              lg:flex flex-1 min-w-0 
-              ${
-                showItinerary
-                  ? "flex absolute inset-0 z-10 lg:relative lg:z-auto"
-                  : "hidden lg:flex"
-              }
-              bg-black/10 backdrop-blur-xl
-              flex-col h-full overflow-hidden
-            `}
-          >
-            <TripItineraryDisplay
-              itineraryData={currentItinerary}
-              tripDetails={tripDetails}
-              loading={isLoading}
-              hasMessages={messages.length > 0}
-            />
-          </motion.div>
+            {/* Right Panel - Itinerary Display (flexible width on desktop, toggleable on mobile) */}
+            <div
+              className={`
+                lg:flex lg:flex-1 lg:min-w-0
+                ${
+                  showItinerary
+                    ? "flex absolute inset-2 sm:inset-4 lg:inset-0 z-10 lg:relative lg:z-auto"
+                    : "hidden lg:flex"
+                }
+                bg-black/20 backdrop-blur-2xl
+                flex-col h-full overflow-hidden lg:ml-0
+              `}
+              role="main"
+              aria-label="Trip itinerary display"
+            >
+              <TripItineraryDisplay
+                itineraryData={currentItinerary}
+                tripDetails={tripDetails}
+                loading={isLoading}
+                hasMessages={messages.length > 0}
+              />
+            </div>
+          </div>
 
           {/* Mobile Toggle Button */}
-          {currentItinerary && (
+          {(currentItinerary || messages.length > 0) && (
             <button
               onClick={() => setShowItinerary(!showItinerary)}
-              className="lg:hidden fixed bottom-6 right-6 z-20 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-full shadow-lg transition-colors cursor-pointer backdrop-blur-sm border border-white/20"
+              className="lg:hidden fixed bottom-4 right-4 z-30 bg-purple-600/90 hover:bg-purple-700/90 text-white p-3 rounded-full shadow-xl transition-all duration-200 cursor-pointer backdrop-blur-sm border border-white/20 ring-2 ring-purple-400/20"
+              aria-label={showItinerary ? "Show chat" : "Show itinerary"}
             >
-              {showItinerary ? "💬" : "📋"}
+              <span
+                className="text-lg"
+                role="img"
+                aria-label={showItinerary ? "Chat" : "Itinerary"}
+              >
+                {showItinerary ? "💬" : "📋"}
+              </span>
             </button>
           )}
         </div>

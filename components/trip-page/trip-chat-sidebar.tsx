@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { MessageBubble, Message } from "@/components/message-bubble";
@@ -95,16 +94,18 @@ export function TripChatSidebar({
   };
 
   return (
-    <div className="h-full flex flex-col bg-black/10 backdrop-blur-sm border-r border-white/20">
+    <div className="h-full flex flex-col bg-black/20 backdrop-blur-2xl border-r border-white/30 overflow-hidden">
       {/* Sidebar Header */}
-      <div className="p-4 border-b border-white/20">
+      <div className="flex-shrink-0 p-3 sm:p-4 border-b border-white/20">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-400/30">
-            <MessageSquare className="h-5 w-5 text-purple-300" />
+            <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-purple-300" />
           </div>
-          <div>
-            <h3 className="font-medium text-white text-sm">Trip Chat</h3>
-            <p className="text-xs text-white/60">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-medium text-white text-sm truncate">
+              Trip Chat
+            </h3>
+            <p className="text-xs text-white/60 truncate">
               {messages.length} message{messages.length !== 1 ? "s" : ""}
             </p>
           </div>
@@ -112,48 +113,36 @@ export function TripChatSidebar({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full">
-          <div className="p-4 space-y-4">
-            <AnimatePresence>
-              {messages.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-8"
-                >
-                  <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-lg ring-1 ring-white/20 p-6">
-                    <div className="text-4xl mb-3">💬</div>
-                    <h4 className="font-medium text-white mb-2">
-                      Start the conversation
-                    </h4>
-                    <p className="text-sm text-white/70">
-                      Ask me anything about your trip to{" "}
-                      {tripDetails.destination}
-                    </p>
-                  </Card>
-                </motion.div>
-              ) : (
-                messages.map((message) => (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                    onCopy={copyToClipboard}
-                    onExport={exportItinerary}
-                    onExportPDF={exportItineraryAsPDF}
-                  />
-                ))
-              )}
-            </AnimatePresence>
+          <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+            {messages.length === 0 ? (
+              <div className="text-center py-8">
+                <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-lg ring-1 ring-white/20 p-6">
+                  <div className="text-4xl mb-3">💬</div>
+                  <h4 className="font-medium text-white mb-2">
+                    Start the conversation
+                  </h4>
+                  <p className="text-sm text-white/70">
+                    Ask me anything about your trip to {tripDetails.destination}
+                  </p>
+                </Card>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  onCopy={copyToClipboard}
+                  onExport={exportItinerary}
+                  onExportPDF={exportItineraryAsPDF}
+                />
+              ))
+            )}
 
             {/* Typing Indicator */}
             {(isLoading || isTyping) && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex justify-start"
-              >
+              <div className="flex justify-start">
                 <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-lg ring-1 ring-white/20 p-4">
                   <div className="flex items-center gap-2">
                     <LoadingSpinner size="sm" />
@@ -162,21 +151,21 @@ export function TripChatSidebar({
                     </span>
                   </div>
                 </Card>
-              </motion.div>
+              </div>
             )}
           </div>
         </ScrollArea>
       </div>
 
       {/* Chat Input */}
-      <div className="p-4 border-t border-white/20">
+      <div className="flex-shrink-0 p-3 sm:p-4 border-t border-white/20">
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="relative">
             <textarea
               value={input}
               onChange={handleInputChange}
               placeholder={`Ask about your trip to ${tripDetails.destination}...`}
-              className="w-full bg-black/20 backdrop-blur-xl border border-white/30 rounded-lg px-4 py-3 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none min-h-[60px] max-h-[120px]"
+              className="w-full bg-black/20 backdrop-blur-xl border border-white/30 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px] text-sm"
               rows={2}
               disabled={isLoading}
               onKeyDown={(e) => {
@@ -188,17 +177,17 @@ export function TripChatSidebar({
             />
           </div>
 
-          <div className="flex justify-between items-center">
-            <p className="text-xs text-white/50">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <p className="text-xs text-white/50 order-2 sm:order-1">
               Press Enter to send, Shift+Enter for new line
             </p>
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm order-1 sm:order-2"
             >
-              <Send className="h-4 w-4" />
-              Send
+              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Send</span>
             </button>
           </div>
         </form>

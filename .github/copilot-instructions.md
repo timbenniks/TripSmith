@@ -8,55 +8,74 @@ TripSmith is a Next.js 15 AI travel planning app with a cinematic dark theme, fe
 
 ## 🔧 **Current State & Completed Features**
 
-### **✅ Implemented Features**
+### **✅ Completed Features**
 
 - ✅ **Feature 1: Auto-Save Trips** - Real-time chat history + structured itinerary data
 - ✅ **Feature 1.5: JSON-Only Itinerary System** - Jitter-free custom rendering with beautiful cards
 - ✅ **Feature 2: Trip History Dashboard** - Complete trip management with search, filter, and navigation
+- ✅ **Feature 2.5: Mature Trip Page Layout** - Two-panel responsive layout with mobile toggle
+- ✅ **Feature 2.75: Performance Optimization** - Removed heavy 3D animations from trip pages
 - ✅ User authentication via GitHub OAuth
 - ✅ Custom ItineraryRenderer component with color-coded sections
 - ✅ Clean URL structure with `/trips/[tripId]` routing
 - ✅ Enhanced UX with proper cursor states and navigation
 
-### **🔧 Current Focus: Mature Trip Page Layout (In Progress)**
+### **� Current Focus: Ready for Next Feature**
 
-**Status**: 60% Complete - Core architecture implemented, background animations restored
+**Recently Completed (Performance Optimization):**
 
-**Recently Completed:**
+- ✅ Removed all framer-motion loading animations from trip pages for snappier feel
+- ✅ Kept 3D globe and star animations only on homepage for visual impact
+- ✅ Replaced AnimatedBackground and EarthVisualization with lightweight purple gradients on trip pages
+- ✅ Maintained CSS hover transitions for interactive elements
+- ✅ Preserved glass morphism styling consistency across all components
+- ✅ Eliminated jittery loading animations while maintaining smooth user interactions
 
-- ✅ Two-panel layout architecture (30% chat sidebar, 70% itinerary display)
-- ✅ Complete component separation into `/components/trip-page/` directory
-- ✅ Background animations and purple gradients restored
-- ✅ SSR safety for Three.js components (AnimatedBackground, EarthVisualization)
-- ✅ Glass morphism styling patterns established
+**Performance Improvements:**
 
-**Current Issues Being Addressed:**
+- 🚀 **Faster Trip Page Loads** - No more Three.js initialization on trip pages
+- 🚀 **Better Mobile Performance** - Reduced memory usage and CPU overhead
+- 🚀 **Eliminated Animation Jitter** - Removed staggered loading animations
+- 🚀 **Preserved Visual Polish** - Homepage retains full 3D experience
+- 🚀 **Maintained Responsiveness** - CSS transitions still provide feedback
 
-- 🔧 Responsive behavior refinement (sidebar cut-off on smaller screens)
-- 🔧 Itinerary positioning optimization in center panel
-- 🔧 Mobile toggle functionality validation
-
-**Remaining Tasks:**
-
-1. Fix responsive layout issues - ensure sidebar doesn't get cut off
-2. Optimize itinerary display positioning and overflow handling
-3. Test mobile responsive design with toggle functionality
-4. Validate glass morphism consistency across components
-
-**Implementation Status:**
-
-- `/components/trip-page/mature-trip-page.tsx` - Core orchestrator with background integration
-- `/components/trip-page/trip-actions-header.tsx` - Complete with responsive design
-- `/components/trip-page/trip-chat-sidebar.tsx` - Functional but needs responsive fixes
-- `/components/trip-page/trip-itinerary-display.tsx` - Complete, may need positioning tweaks
-
-**Next Session Priority:** Focus on responsive layout fixes and mobile validation before moving to Feature 3.
+**System Status:** All features stable, performance optimized, ready for Feature 3
 
 ### **📋 Next Features**
 
 - Feature 3: Smart Suggestions Engine
 - Feature 4: Calendar Integration
 - Feature 5: Collaborative Trip Planning
+
+### **🚀 Future Roadmap (Post-MVP)**
+
+**Phase 1: Monetization & Analytics**
+
+- **Stripe Payments Integration**: Subscription tiers, premium features, payment processing
+- **Plausible Analytics**: Privacy-focused usage tracking and user behavior insights
+- **Usage Metrics**: OpenAI API cost tracking, user engagement analytics
+
+**Phase 2: Administrative Infrastructure**
+
+- **Admin Dashboard**:
+  - MRR (Monthly Recurring Revenue) tracking and financial metrics
+  - OpenAI API usage statistics and cost monitoring
+  - System logs and error tracking
+  - User growth and engagement analytics
+  - Performance monitoring and alerts
+- **User Management System**:
+  - Payment history and subscription management
+  - User itinerary access and viewing tools
+  - User account administration (suspend, delete, modify)
+  - User impersonation for support purposes
+  - Bulk user operations and data export tools
+
+**Phase 3: Enterprise Features**
+
+- Team collaboration tools
+- White-label solutions
+- API access for third-party integrations
+- Advanced reporting and export capabilities
 
 ---
 
@@ -212,13 +231,24 @@ useEffect(() => {
 
 ### **Animation Patterns**
 
-```tsx
-// Framer Motion standard patterns:
-whileHover={{ y: -4, scale: 1.02 }}
-initial={{ opacity: 0, y: 20 }}
-animate={{ opacity: 1, y: 0 }}
+**IMPORTANT: Performance-Optimized Animation Strategy**
 
-// AnimatePresence for conditional rendering
+- ✅ **Homepage Only**: 3D globe and star animations for visual impact
+- ✅ **Trip Pages**: No loading animations - snappy, immediate rendering
+- ✅ **CSS Hover Transitions**: Maintained for interactive feedback
+- ❌ **Removed**: framer-motion loading animations (initial/animate patterns)
+- ❌ **Removed**: Staggered loading animations with delays
+
+```tsx
+// AVOID: Loading animations on trip pages (causes jitter)
+// ❌ initial={{ opacity: 0, y: 20 }}
+// ❌ animate={{ opacity: 1, y: 0 }}
+// ❌ transition={{ delay: index * 0.1 }}
+
+// PREFERRED: CSS transitions for interactions only
+className="hover:border-purple-400/50 transition-all duration-300"
+
+// HOMEPAGE ONLY: 3D and motion animations
 <AnimatePresence>
   {showElement && <motion.div exit={{ opacity: 0 }} />}
 </AnimatePresence>
@@ -407,6 +437,8 @@ npm run dev # Runs on localhost:3001 (3000 often occupied)
 8. **Cursor Styles**: All interactive elements need explicit `cursor-pointer` for better UX
 9. **Layout Overlaps**: Position elements carefully to avoid logo/menu conflicts
 10. **Route Structure**: Use dynamic routes `/trips/[tripId]` for clean URLs vs query parameters
+11. **Performance**: Avoid framer-motion loading animations on trip pages - causes jitter and slow performance
+12. **3D Components**: Only use AnimatedBackground and EarthVisualization on homepage, not trip pages
 
 ---
 
@@ -422,7 +454,8 @@ npm run dev # Runs on localhost:3001 (3000 often occupied)
 
 - Follow shadcn/ui patterns with dark theme OKLCH variables
 - Apply glass morphism styling consistently
-- Use `framer-motion` for animations with `initial/animate/exit` pattern
+- **AVOID** framer-motion for loading animations on trip pages
+- **KEEP** CSS transitions for hover effects and user interactions
 - Add `cursor-pointer` to all interactive elements
 
 ### **Database Operations**
@@ -434,8 +467,8 @@ npm run dev # Runs on localhost:3001 (3000 often occupied)
 
 ### **3D Enhancements**
 
-- Modify `EarthGlobe` component with `useFrame` hook for animations
-- Load additional textures following the `useEffect` pattern
+- **Homepage Only**: Modify `EarthGlobe` component with `useFrame` hook for animations
+- **Homepage Only**: Load additional textures following the `useEffect` pattern
 - Maintain SSR safety with `mounted && isClient` checks
 
 ---

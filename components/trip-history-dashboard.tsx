@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { User } from "@supabase/supabase-js";
 import { Trip } from "@/lib/trip-service";
@@ -90,11 +89,7 @@ export function TripHistoryDashboard({
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden bg-black/20 backdrop-blur-xl border border-white/30 shadow-lg ring-1 ring-white/20">
@@ -166,62 +161,46 @@ export function TripHistoryDashboard({
             </div>
           </Card>
         )}
-      </motion.div>
+      </div>
 
       {/* Trip Grid */}
-      <AnimatePresence mode="wait">
-        {filteredTrips.length === 0 ? (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center py-16"
-          >
-            <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-12 max-w-md mx-auto">
-              <div className="text-6xl mb-4">🌍</div>
-              <h3 className="text-xl font-semibold text-white mb-2">
-                {searchQuery || statusFilter !== "all"
-                  ? "No trips found"
-                  : "No trips yet"}
-              </h3>
-              <p className="text-white/70 mb-6">
-                {searchQuery || statusFilter !== "all"
-                  ? "Try adjusting your search or filters"
-                  : "Start planning your first adventure!"}
-              </p>
-              {!searchQuery && statusFilter === "all" && (
-                <Button
-                  onClick={onNewTrip}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Plan Your First Trip
-                </Button>
-              )}
-            </Card>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="grid"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {filteredTrips.map((trip, index) => (
-              <motion.div
-                key={trip.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+      {filteredTrips.length === 0 ? (
+        <div key="empty" className="text-center py-16">
+          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-12 max-w-md mx-auto">
+            <div className="text-6xl mb-4">🌍</div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {searchQuery || statusFilter !== "all"
+                ? "No trips found"
+                : "No trips yet"}
+            </h3>
+            <p className="text-white/70 mb-6">
+              {searchQuery || statusFilter !== "all"
+                ? "Try adjusting your search or filters"
+                : "Start planning your first adventure!"}
+            </p>
+            {!searchQuery && statusFilter === "all" && (
+              <Button
+                onClick={onNewTrip}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
               >
-                <TripCard trip={trip} onSelect={() => onTripSelect(trip.id)} />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <Plus className="h-4 w-4 mr-2" />
+                Plan Your First Trip
+              </Button>
+            )}
+          </Card>
+        </div>
+      ) : (
+        <div
+          key="grid"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {filteredTrips.map((trip, index) => (
+            <div key={trip.id}>
+              <TripCard trip={trip} onSelect={() => onTripSelect(trip.id)} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
