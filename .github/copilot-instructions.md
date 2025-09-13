@@ -530,7 +530,8 @@ transition: opacity 1.5s ease-in-out;
 - **Feature 4**: User preferences for travel purpose, budget, activity types, home timezone in supabase.
   - enhance initial prompt with user profile data.
 - **Feature 5**: Trip management: export (PDF, email), delete, rename
-- **Feature 6**: Calendar Integration
+- **Feature 6**: Implement Plausible analytics for privacy-focused usage tracking
+- **Feature 7**: Calendar Integration
 
 ### **Future Enhancements**
 
