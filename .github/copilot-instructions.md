@@ -1,6 +1,6 @@
 # TripSmith AI Travel Planner - Development Guide
 
-> **Status**: Production-ready MVP with optimized architecture, foundational accessibility complete, and recent dependency/performance cleanup  
+> **Status**: Production-ready MVP with optimized architecture, foundational accessibility complete, Smart Suggestions Engine (hybrid prefill + explicit regeneration) implemented, and recent dependency/performance cleanup  
 > **Stack**: Next.js 15, React 19, TypeScript, Supabase, OpenAI GPT-4, Three.js  
 > **Theme**: Cinematic dark theme with glass morphism and 3D visualizations
 
@@ -73,12 +73,20 @@ Deferred (Intentional): Automated a11y tooling (axe / Playwright) to minimize cu
 
 **System Status:** Architecture + accessibility foundation ready for Feature 3 implementation.
 
-### **Next Phase: Feature 3 - Smart Suggestions Engine**
+### **Phase Complete: Smart Suggestions Engine (Hybrid Workflow)**
 
-- AI-powered location recommendations
-- Weather-aware activity suggestions
-- Budget optimization suggestions
-- Seasonal activity recommendations
+Implemented multi-layer suggestion & regeneration system:
+
+- Contextual logistics heuristics (dates, flights, hotel, daily outline, etiquette, regeneration)
+- Aggregated deterministic domain suggestions (seasonal timing, etiquette basics, transit pass optimization) generated server-side & suppressed until scaffold
+- Inline structured forms (flights, hotel, dates) that prefill chat input (no immediate full JSON regen)
+- Hidden AI directive layer (`ui_directives`) in fenced JSON controlling show/hide/highlight/mode/order (stripped before rendering)
+- Hybrid regeneration: incremental edits set `pendingRegen`; explicit “Regenerate itinerary” bubble triggers full JSON refresh
+- Bubble dismissal & per-trip persistence via `localStorage` (`ts-dismissed-<tripId>`)
+- Suppression heuristics avoid noisy early suggestions & duplicate themes already in `helpfulNotes`
+- Enriched AI placeholder suggestions with actionable prompts
+
+Result: Lean, high-signal assistance enabling structured itinerary enrichment without unwanted full rewrites.
 
 ---
 
@@ -137,8 +145,8 @@ CREATE TABLE trips (
 **OpenAI Integration:**
 
 - **Model**: GPT-4.1 via Vercel AI SDK
-- **Streaming**: Uses `streamText()` for real-time responses
-- **Format**: JSON-only responses for complete itineraries
+- **Streaming**: Uses `streamText()` for real-time token delivery
+- **Format**: Full itinerary JSON (single fenced block) returned ONLY when the user explicitly requests regeneration; incremental logistics edits (dates, flights, hotel) are accepted as plain text instructions and deferred until explicit consolidation.
 
 **API Structure:**
 
@@ -154,7 +162,7 @@ POST /api/chat
 // Response: Streaming text with potential JSON blocks
 ```
 
-### **JSON-Only Itinerary System**
+### **JSON-Only Itinerary System & Hybrid Update Flow**
 
 **Problem Solved:** Eliminated jittery table rendering during AI streaming responses.
 
@@ -184,7 +192,46 @@ POST /api/chat
 }
 ```
 
-**Processing Flow:**
+**Hybrid Processing Flow:**
+
+1. User supplies granular logistics (dates / flights / hotel) via inline forms or contextual bubbles (prefill) — no immediate full JSON.
+2. Each granular action sets a local `pendingRegen`; related contextual bubbles (e.g., add flights) are suppressed.
+3. User activates “Regenerate itinerary” bubble to consolidate staged edits.
+4. Assistant returns a single fenced JSON block (`type: complete_itinerary`) replacing prior itinerary data.
+5. Streaming layer extracts & stores structured itinerary; resets `pendingRegen`.
+6. Hidden `ui_directives` fenced JSON (if present) is parsed for suggestion orchestration then stripped from transcript.
+
+**Directive Handling (`ui_directives` fenced JSON)**
+
+````jsonc
+```json ui_directives
+{
+  "suggestions": [
+    { "id": "add_hotel", "actions": ["hide", "prefillMode"] },
+    { "id": "draft_daily_outline", "actions": ["highlight"] }
+  ],
+  "orderingHints": ["set_travel_dates", "add_flights", "add_hotel"]
+}
+````
+
+````
+
+Supported actions: `show`, `hide`, `prefillMode`, `sendMode`, `highlight`. Unknown IDs ignored.
+
+**Suggestion Layer State**
+
+- `dismissedIds`: Persisted contextual bubble IDs per trip (`localStorage: ts-dismissed-<tripId>`)
+- `pendingRegen`: Indicates staged logistic edits not yet consolidated
+- `apiSuggestions`: Aggregated deterministic server suggestions (seasonal / etiquette / transit)
+- `aiDirectives`: Parsed runtime adjustments from hidden control block
+- `inferredDaySpan`: Calculated from date form for quick feedback
+
+**Suppression Logic Summary**
+
+- Hide contextual bubble after use (except regenerate)
+- Hide logistics contextual bubbles while `pendingRegen` true
+- Delay seasonal/etiquette/transit suggestions until dates + (flights OR hotel) OR `pendingRegen`
+- Suppress deterministic suggestions whose themes already appear in `helpfulNotes`
 
 1. AI generates JSON-only response for complete itineraries
 2. Chat interface detects JSON content with `extractItineraryData()`
@@ -210,7 +257,7 @@ OPENAI_API_KEY=your_openai_key
 
 # 3. Run development server
 npm run dev # Runs on localhost:3001 (3000 often occupied)
-```
+````
 
 ### **Build Configuration**
 
@@ -238,7 +285,7 @@ The codebase features a comprehensive shared utility architecture that eliminate
 
 **Used by**: chat-interface.tsx, mature-trip-page.tsx, streaming-utils.ts
 
-<!-- Removed: lib/markdown-utils.ts (retired after adopting JSON-only itinerary & simplified markdown rendering) -->
+<!-- Deprecated (present but unused): lib/markdown-utils.ts & lib/pdf-utils.ts retained temporarily for potential future export functionality; not imported in current runtime. -->
 
 #### **lib/markdown-components.tsx** (96 lines)
 
@@ -497,33 +544,36 @@ transition: opacity 1.5s ease-in-out;
 8. **Cursor Styles**: All interactive elements need explicit `cursor-pointer` for better UX
 9. **Layout Overlaps**: Position elements carefully to avoid logo/menu conflicts
 10. **Route Structure**: Use dynamic routes `/trips/[tripId]` for clean URLs vs query parameters
-11. **Performance**: Avoid framer-motion loading animations on trip pages - now removed (static rendering via `disableAnimation` prop)
-12. **3D Components**: Only use AnimatedBackground and EarthVisualization on homepage, not trip pages
-13. **Animation Coordination**: Use custom events with requestAnimationFrame for synchronized animations
-14. **Auth Optimization**: Use single useAuth() pattern instead of multiple auth checks per page
-15. **Auto-Redirect Timing**: Show success indicators for 2s before redirecting to prevent jarring transitions
-16. **Export Functionality**: Centralize in trip pages, not in individual message bubbles
-17. **Shared Utilities**: When refactoring, ensure function signatures match across components
-18. **Null Safety**: Use proper null checking instead of non-null assertions (!) for runtime safety
-19. **API Consistency**: Update all components when changing shared utility function signatures
-20. **Type Safety**: Prefer returning structured objects from utilities rather than primitive types
-21. **Live Regions Discipline**: Single assertive region globally; stream incremental content via polite region.
-22. **Contrast Tokens**: Use `.text-contrast-*` & `.placeholder-contrast` instead of opacity-based white text.
-23. **Focus Restoration**: Return focus to trigger element after modal/popup dismissal.
-24. **Decorative Icons**: Apply `aria-hidden="true"` and omit `title` to reduce SR noise.
-25. **Itinerary Streaming**: Announce phase shifts (start, update, completion) not every token.
-26. **Avatar Alt Text**: Dynamically derive alt from user identity; blank alt for purely decorative images.
+11. **Hybrid Regeneration**: Never auto-return full JSON after granular edits; require user-triggered regenerate bubble.
+12. **Performance**: Framer-motion entrance animations removed on trip pages (use static rendering + lightweight transitions only)
+13. **3D Components**: Restrict heavy 3D visuals to homepage
+14. **Animation Coordination**: Use custom events + rAF for Earth/Stars sequencing
+15. **Auth Optimization**: Single `useAuth()` consumption per page boundary
+16. **Auto-Redirect Timing**: Delay redirect (~2s) post-create for perceived stability
+17. **Export Functionality**: Legacy PDF utils deprecated; centralize future export features server-side or dedicated module
+18. **Shared Utilities**: Align function signatures; update all importers together
+19. **Null Safety**: Avoid non-null assertions; prefer explicit guards
+20. **API Consistency**: Propagate shared utility signature changes across chat + trip modules
+21. **Type Safety**: Return structured objects (avoid loose primitives for multi-field results)
+22. **Live Regions Discipline**: One assertive region only; token-level announcements avoided
+23. **Contrast Tokens**: Use standardized `.text-contrast-*` classes
+24. **Focus Restoration**: Return focus to bubble after form close
+25. **Decorative Icons**: `aria-hidden` + no redundant titles
+26. **Itinerary Streaming**: Announce only phase boundaries (start/update/completion)
+27. **Avatar Alt Text**: Contextual; decorative avatars get empty alt
+28. **Suggestion Persistence**: Dismissals stored in `localStorage` (`ts-dismissed-<tripId>`)
+29. **Directive Hygiene**: Strip `ui_directives` fenced block pre-render
 
 ---
 
 ## 🚀 Roadmap
 
-### **Next Phase: Feature 3 - Smart Suggestions Engine**
+### **Next Phase: Suggestion Intelligence Extensions**
 
-- Implement AI-powered suggestions to enhance trip planning in prompt window by providing custom forms for flight selection, etc.
-- propose ideas to developer in chat, discuss to refine.
-- Weather and strike aware travel suggestions
-- Smart links for flights (google flights), hotels (google maps), venues (google maps), travel routes in cities (google maps) in itinerary.
+- Weather & disruption (strike) aware travel adjustments
+- Budget optimization heuristics
+- Smart deep links (Google Flights / Maps for hotels & venues / transit planners)
+- Lightweight preference modeling for personalization
 
 ### **Future Development Pipeline**
 
@@ -542,7 +592,7 @@ transition: opacity 1.5s ease-in-out;
 
 ---
 
-## 📊 Code Simplification Summary
+## 📊 Code Simplification & Suggestions Engine Summary
 
 ### **Major Accomplishments**
 
@@ -561,14 +611,16 @@ We recently completed a comprehensive code refactoring that significantly improv
 - **lib/streaming-utils.ts** (138 lines): Chat streaming response handlers
 - **lib/chat-utils.ts**: Message generators and trip context formatting
 
-#### **Benefits Achieved:**
+#### **Benefits Achieved (Updated):**
 
-- ✅ **Zero Code Duplication**: Eliminated all duplicate functions across chat components
-- ✅ **Enhanced Type Safety**: Proper null checking and error handling throughout
-- ✅ **Improved Maintainability**: Clear separation of concerns with documented utilities
-- ✅ **Better Performance**: Reduced bundle size (centralized shared code + removed PDF/table parsing layer + pruned unused animation/OpenAI deps) and dropped runtime animations on trip pages
-- ✅ **Runtime Stability**: Removed fragile table parsing layer; simplified markdown path
-- ✅ **Future-Ready Architecture**: Modular design for easier feature additions
+- ✅ Zero code duplication across chat components
+- ✅ Hybrid suggestion + explicit regeneration flow (avoids unnecessary rewrites)
+- ✅ Hidden AI directive layer enabling runtime UI shaping without leaking control JSON
+- ✅ Enhanced type safety with guarded null checks
+- ✅ Improved maintainability (modular utilities & aggregated server suggestion generation)
+- ✅ Performance gains: removed legacy table/PDF layers & animation overhead
+- ✅ Runtime stability via deterministic suppression & explicit regeneration gating
+- ✅ Future-ready for ranking, personalization, weather & budget modules
 
 The codebase is now significantly more maintainable and provides a solid foundation for implementing Feature 3 and beyond.
 
