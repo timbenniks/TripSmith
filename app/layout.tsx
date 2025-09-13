@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
 import { Suspense } from "react";
 import "./globals.css";
+import { ErrorPanel } from '@/components/error-panel';
 
 export const metadata: Metadata = {
   title: "TripSmith - AI Travel Planner",
@@ -41,6 +42,7 @@ export default function RootLayout({
               <main id="main-content" role="main">
                 {children}
               </main>
+              <ErrorPanel />
             </AuthProvider>
           </ThemeProvider>
         </Suspense>

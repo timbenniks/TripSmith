@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { tripService, Trip } from "@/lib/trip-service";
+import { logError } from '@/lib/error-logger';
 import { Message } from "@/components/message-bubble";
 import { TripActionsHeader } from "./trip-actions-header";
 import { TripChatSidebar } from "./trip-chat-sidebar";
@@ -146,21 +147,21 @@ export function MatureTripPage({
   useEffect(() => {
     if (autoCompleteChecked) return; // run once per mount
     if (!trip) return;
-    if (trip.status === 'completed') return;
+    if (trip.status === "completed") return;
     const toDateStr = trip.travel_dates?.to;
     if (!toDateStr) return;
-    const endDate = new Date(toDateStr + 'T23:59:59');
+    const endDate = new Date(toDateStr + "T23:59:59");
     const now = new Date();
     const threshold = new Date(endDate.getTime() + 24 * 60 * 60 * 1000); // +24h
     if (now >= threshold) {
       // Mark completed silently
       (async () => {
         const previousStatus = trip.status;
-        setTrip(prev => ({ ...prev, status: 'completed' }));
-        const ok = await tripService.updateTripStatus(trip.id, 'completed');
+        setTrip((prev) => ({ ...prev, status: "completed" }));
+        const ok = await tripService.updateTripStatus(trip.id, "completed");
         if (!ok) {
           // Revert if failed
-            setTrip(prev => ({ ...prev, status: previousStatus }));
+          setTrip((prev) => ({ ...prev, status: previousStatus }));
         } else {
         }
         setAutoCompleteChecked(true);
@@ -185,6 +186,7 @@ export function MatureTripPage({
         router.push("/trips");
       } catch (error) {
         console.error("Failed to delete trip:", error);
+        logError(error, { source: 'MatureTripPage', extra: { action: 'deleteTrip', tripId } });
         alert("Failed to delete trip. Please try again.");
       }
     }
@@ -222,20 +224,24 @@ export function MatureTripPage({
         {/* User Menu */}
         <UserMenu />
 
-        {showCompleteSuggestion && trip.status !== 'completed' && (
+        {showCompleteSuggestion && trip.status !== "completed" && (
           <div className="mx-3 sm:mx-4 lg:mx-6 mt-2 mb-1 bg-gradient-to-r from-purple-600/30 to-fuchsia-600/30 border border-white/20 rounded-md px-3 py-2 text-xs flex items-center justify-between gap-3">
             <div className="text-contrast-secondary">
-              Trip has ended. Mark as <span className="font-semibold text-green-300">Completed</span>?
+              Trip has ended. Mark as{" "}
+              <span className="font-semibold text-green-300">Completed</span>?
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={async () => {
                   const previousStatus = trip.status;
-                  setTrip(prev => ({ ...prev, status: 'completed' }));
-                  const ok = await tripService.updateTripStatus(trip.id, 'completed');
+                  setTrip((prev) => ({ ...prev, status: "completed" }));
+                  const ok = await tripService.updateTripStatus(
+                    trip.id,
+                    "completed"
+                  );
                   if (!ok) {
-                    setTrip(prev => ({ ...prev, status: previousStatus }));
-                    alert('Failed to update status.');
+                    setTrip((prev) => ({ ...prev, status: previousStatus }));
+                    alert("Failed to update status.");
                   }
                   setShowCompleteSuggestion(false);
                 }}

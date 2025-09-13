@@ -13,9 +13,11 @@ import { MessageBubble } from "@/components/message-bubble";
 import { ChatInput } from "@/components/chat-input";
 import { AnimatedBackground } from "@/components/animated-background";
 import { EarthVisualization } from "@/components/earth-visualization";
+import { useDelayedIndicator } from '@/hooks/useDelayedIndicator';
 import { UserMenu } from "@/components/user-menu";
 import { generateWelcomeMessage, type Message } from "@/lib/chat-utils";
 import { tripService } from "@/lib/trip-service";
+import { logError } from '@/lib/error-logger';
 import { useAuth } from "@/components/auth-provider";
 import { AuthModal } from "@/components/auth-modal";
 import {
@@ -54,6 +56,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   const [isClient, setIsClient] = useState(false);
   const [mounted, setMounted] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const showSendDelay = useDelayedIndicator(isLoading, 1500);
 
   useEffect(() => {
     setMounted(true);
@@ -133,6 +136,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
           }
         } catch (error) {
           console.error("Error loading trip:", error);
+          logError(error, { source: 'ChatInterface', extra: { action: 'loadTrip', resumeTripId } });
           setAssertiveMessage(
             "Error loading trip data. Some information may be missing."
           );
@@ -365,6 +369,7 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
       }
     } catch (error) {
       console.error("Chat error:", error);
+      logError(error, { source: 'ChatInterface', extra: { action: 'chatSend', currentTripId } });
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -435,7 +440,6 @@ Please welcome me and let me know how you can help with my trip planning.`;
       <UserMenu />
 
       <div className="flex-1 min-h-0 relative z-10">
-
         {/* Live regions: polite (status updates) and assertive (errors) */}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
           {liveMessage}
@@ -560,12 +564,20 @@ Please welcome me and let me know how you can help with my trip planning.`;
       </div>
 
       {!loading && user && !showForm && (
-        <ChatInput
-          value={input}
-          onChange={handleInputChange}
-          onSend={handleSubmit}
-          isLoading={isLoading}
-        />
+        <div className="relative">
+          {showSendDelay && (
+            <div className="absolute -top-4 left-1 text-[10px] text-white/40 flex items-center gap-1" aria-live="polite">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white/40" />
+              thinking…
+            </div>
+          )}
+          <ChatInput
+            value={input}
+            onChange={handleInputChange}
+            onSend={handleSubmit}
+            isLoading={isLoading}
+          />
+        </div>
       )}
 
       <EarthVisualization mounted={mounted} isClient={isClient} />
