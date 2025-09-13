@@ -7,7 +7,7 @@ import { MessageBubble } from "@/components/message-bubble";
 import { Message } from "@/lib/chat-utils";
 import { ChatInput } from "@/components/chat-input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { SuggestionsPanel } from '@/components/suggestions-panel';
+import { SuggestionBubblesBar } from "@/components/suggestion-bubbles-bar";
 import { MessageSquare, Send } from "lucide-react";
 
 interface TripDetails {
@@ -169,24 +169,26 @@ export function TripChatSidebar({
             </button>
           </div>
         </form>
-        {/* Suggestions Panel Integration */}
-        <SuggestionsPanel
-          tripId={tripId}
-          destination={tripDetails.destination}
-            // TODO: derive first date & length from itinerary once available
-          firstTravelDate={undefined}
-          daySpan={undefined}
-          onApply={(prompt) => {
-            // Insert suggestion prompt as user input & send
-            (async () => {
-              try {
-                await onSendMessage(prompt);
-              } catch (e) {
-                console.error('Failed applying suggestion', e);
-              }
-            })();
-          }}
-        />
+        <div className="pt-1">
+          <SuggestionBubblesBar
+            tripId={tripId}
+            destination={tripDetails.destination}
+            firstTravelDate={undefined}
+            daySpan={undefined}
+            itineraryData={undefined}
+            onPrefillPrompt={(text) => {
+              // Prefill into textarea (append)
+              // We do not have direct access to input state here; future enhancement could lift state.
+              // For now prefill acts same as send.
+              (async () => {
+                try { await onSendMessage(text); } catch (e) { console.error('Failed prefill apply', e); }
+              })();
+            }}
+            onApplyPrompt={async (prompt) => {
+              try { await onSendMessage(prompt); } catch (e) { console.error("Failed applying suggestion", e); }
+            }}
+          />
+        </div>
       </div>
     </div>
   );
