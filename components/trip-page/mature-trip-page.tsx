@@ -46,6 +46,8 @@ export function MatureTripPage({
     // Default to chat on mobile if no itinerary, otherwise show itinerary
     initialTrip.itinerary_data ? true : false
   );
+  const [autoCompleteChecked, setAutoCompleteChecked] = useState(false);
+  const [showCompleteSuggestion, setShowCompleteSuggestion] = useState(false);
 
   // (Removed PDF test: deprecated PDF export layer)
 
@@ -140,6 +142,37 @@ export function MatureTripPage({
     }
   };
 
+  // Auto-complete status 24h after end date (client-side heuristic)
+  useEffect(() => {
+    if (autoCompleteChecked) return; // run once per mount
+    if (!trip) return;
+    if (trip.status === 'completed') return;
+    const toDateStr = trip.travel_dates?.to;
+    if (!toDateStr) return;
+    const endDate = new Date(toDateStr + 'T23:59:59');
+    const now = new Date();
+    const threshold = new Date(endDate.getTime() + 24 * 60 * 60 * 1000); // +24h
+    if (now >= threshold) {
+      // Mark completed silently
+      (async () => {
+        const previousStatus = trip.status;
+        setTrip(prev => ({ ...prev, status: 'completed' }));
+        const ok = await tripService.updateTripStatus(trip.id, 'completed');
+        if (!ok) {
+          // Revert if failed
+            setTrip(prev => ({ ...prev, status: previousStatus }));
+        }
+        setAutoCompleteChecked(true);
+      })();
+    } else {
+      // If within 24h past end date window approaching, show suggestion when now > endDate
+      if (now >= endDate) {
+        setShowCompleteSuggestion(true);
+      }
+      setAutoCompleteChecked(true);
+    }
+  }, [trip, autoCompleteChecked]);
+
   const handleDelete = async () => {
     if (
       confirm(
@@ -188,6 +221,37 @@ export function MatureTripPage({
         {/* User Menu */}
         <UserMenu />
 
+        {showCompleteSuggestion && trip.status !== 'completed' && (
+          <div className="mx-3 sm:mx-4 lg:mx-6 mt-2 mb-1 bg-gradient-to-r from-purple-600/30 to-fuchsia-600/30 border border-white/20 rounded-md px-3 py-2 text-xs flex items-center justify-between gap-3">
+            <div className="text-contrast-secondary">
+              Trip has ended. Mark as <span className="font-semibold text-green-300">Completed</span>?
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={async () => {
+                  const previousStatus = trip.status;
+                  setTrip(prev => ({ ...prev, status: 'completed' }));
+                  const ok = await tripService.updateTripStatus(trip.id, 'completed');
+                  if (!ok) {
+                    setTrip(prev => ({ ...prev, status: previousStatus }));
+                    alert('Failed to update status.');
+                  }
+                  setShowCompleteSuggestion(false);
+                }}
+                className="px-2 py-1 rounded-md bg-green-500/20 hover:bg-green-500/30 text-green-300 text-[11px] font-medium transition-colors"
+              >
+                Mark Completed
+              </button>
+              <button
+                onClick={() => setShowCompleteSuggestion(false)}
+                className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[11px] transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <TripActionsHeader
           tripId={trip.id}
@@ -201,7 +265,7 @@ export function MatureTripPage({
             if (!ok) {
               // Revert if failed
               setTrip((prev) => ({ ...prev, status: trip.status }));
-              alert('Failed to update status.');
+              alert("Failed to update status.");
             }
           }}
           onDelete={handleDelete}
