@@ -81,11 +81,7 @@ export function TripForm({ onSubmit }: TripFormProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center space-y-6"
-    >
+    <div className="flex flex-col items-center justify-center space-y-6">
       <div className="text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full mb-4 mx-auto overflow-hidden">
           <Image
@@ -247,6 +243,6 @@ export function TripForm({ onSubmit }: TripFormProps) {
           </Button>
         </div>
       </Card>
-    </motion.div>
+    </div>
   );
 }

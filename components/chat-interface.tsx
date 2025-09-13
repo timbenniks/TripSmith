@@ -7,23 +7,17 @@ import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TripForm, type TripDetails } from "@/components/trip-form";
-import { TripService } from "@/lib/trip-service";
 import { HybridResponse } from "@/lib/types";
 import { MessageBubble } from "@/components/message-bubble";
 import { ChatInput } from "@/components/chat-input";
 import { AnimatedBackground } from "@/components/animated-background";
 import { EarthVisualization } from "@/components/earth-visualization";
 import { UserMenu } from "@/components/user-menu";
-import {
-  formatTripContext,
-  generateWelcomeMessage,
-  type Message,
-} from "@/lib/chat-utils";
+import { generateWelcomeMessage, type Message } from "@/lib/chat-utils";
 import { exportToPDF, testPDFLibraries } from "@/lib/pdf-utils";
 import { tripService } from "@/lib/trip-service";
 import { useAuth } from "@/components/auth-provider";
 import { AuthModal } from "@/components/auth-modal";
-import { ItineraryRenderer } from "@/components/itinerary-renderer";
 
 interface ChatInterfaceProps {
   tripDetails?: TripDetails;
@@ -62,10 +56,7 @@ function extractItineraryData(content: string): {
   };
 }
 
-export function ChatInterface({
-  tripDetails,
-  resumeTripId,
-}: ChatInterfaceProps) {
+export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -515,15 +506,12 @@ Please welcome me and let me know how you can help with my trip planning.`;
             </AnimatePresence>
           </div>
         )}
+
         <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
           <div className="max-w-4xl mx-auto space-y-6 pb-6">
             {/* Authentication Loading State */}
-            {loading && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center items-center min-h-[60vh]"
-              >
+            {/* {loading && (
+              <div className="flex justify-center items-center min-h-[60vh]">
                 <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-8 text-white shadow-2xl ring-1 ring-white/20">
                   <div className="flex flex-col items-center space-y-4">
                     <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
@@ -532,16 +520,12 @@ Please welcome me and let me know how you can help with my trip planning.`;
                     </span>
                   </div>
                 </Card>
-              </motion.div>
-            )}
+              </div>
+            )} */}
 
             {/* Authentication Required State */}
             {!loading && !user && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center items-center min-h-[60vh]"
-              >
+              <div className="flex justify-center items-center min-h-[60vh]">
                 <div className="w-full max-w-md">
                   <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-8 text-white shadow-2xl ring-1 ring-white/20 text-center">
                     <div className="flex flex-col items-center space-y-6">
@@ -573,7 +557,7 @@ Please welcome me and let me know how you can help with my trip planning.`;
                     </div>
                   </Card>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {/* Main App Content - Only show when authenticated */}
@@ -594,11 +578,7 @@ Please welcome me and let me know how you can help with my trip planning.`;
                 </AnimatePresence>
 
                 {isLoading && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex justify-start"
-                  >
+                  <div className="flex justify-start">
                     <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 text-white shadow-2xl ring-1 ring-white/20">
                       <div className="flex items-center space-x-3">
                         <div className="relative">
@@ -615,7 +595,7 @@ Please welcome me and let me know how you can help with my trip planning.`;
                         </div>
                       </div>
                     </Card>
-                  </motion.div>
+                  </div>
                 )}
               </>
             )}

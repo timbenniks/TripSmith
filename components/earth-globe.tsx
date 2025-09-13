@@ -21,6 +21,11 @@ export function EarthGlobe() {
         // onLoad callback
         () => {
           setTextureLoaded(true);
+          // Dispatch custom event to notify parent component using requestAnimationFrame
+          // to avoid blocking the animation thread
+          requestAnimationFrame(() => {
+            window.dispatchEvent(new CustomEvent("earthTextureLoaded"));
+          });
         },
         // onProgress callback (optional)
         undefined,
@@ -28,6 +33,11 @@ export function EarthGlobe() {
         (error) => {
           console.error("Error loading earth texture:", error);
           setTextureLoaded(true); // Still fade in even if texture fails
+          // Dispatch event even on error so canvas doesn't stay invisible
+          // Use requestAnimationFrame to avoid blocking animation thread
+          requestAnimationFrame(() => {
+            window.dispatchEvent(new CustomEvent("earthTextureLoaded"));
+          });
         }
       );
       texture.wrapS = THREE.RepeatWrapping;
