@@ -1,9 +1,9 @@
 # Smart Suggestions Engine - Design Document
 
-Status: Draft (MVP Scope)
+Status: In Progress (MVP Step 1)
 Target Branch: `feature/suggestions-engine`
 Owner: TripSmith Core
-Last Updated: <!-- date placeholder -->
+Last Updated: 2025-09-13
 
 ## 1. Goal & Non-Goals
 
@@ -227,15 +227,36 @@ Heuristics:
 
 ---
 
-## 13. Open Questions
-- Should suggestions persist per trip (Supabase table) for future sessions? (MVP: no)
-- Do we throttle model calls across tabs? (Later optimization)
-- Should we surface a minimal variant directly above itinerary instead of separate panel? (Test after first release)
-- Do we allow user to dislike suggestions to prune future sets? (Future personalization)
+## 13. Confirmed MVP Decisions
+1. Persistence: Ephemeral only (not stored per trip). Rationale: reduce schema churn; fast iteration. Revisit after observing acceptance metrics.
+2. Panel Placement: Below (or optionally above) the chat area— NOT under itinerary—to keep user focus on the core chat→itinerary loop. Mobile: collapsible drawer below chat.
+3. Apply Behavior: Each suggestion applies by sending an ordinary user chat message (no special system action type). Simplicity preserves existing streaming + itinerary delta pipeline. We will still prepend a lightweight directive inside the user message text to encourage JSON-only delta updates.
+4. Max Set Size: Adaptive based on trip length (heuristic below) capped at 7.
+5. Gaps Heuristic (Initial Scope): Keep simple— detect: (a) arrival morning unplanned, (b) empty evening (no activities after 18:00), (c) missing accommodation, (d) flight presence vs. missing return, (e) transit pass hint. Defer meals & complex transit transfers until post-MVP.
+6. Provenance Badges: Display a compact badge per suggestion: AI, Seed, or Hybrid. Styling: 10px pill, subtle border, opacity hover lift; hidden from screen readers (SR gets textual prefix “Source: AI”).
+7. Retry UX: Inline subtle text link “Retry generation” shown only in error state; uses same deterministic seeds unless context changed.
+
+Adaptive Count Heuristic (draft):
+| Trip Length (days) | Target Suggestions |
+|--------------------|--------------------|
+| 1–2                | 3–4                |
+| 3–5                | 5–6                |
+| 6+                 | 6–7                |
+
+Formula: `target = clamp( ceil(days * 1.2), 3, 7 )` then trimmed for uniqueness.
+
+## 14. Deferred / Future Questions
+- Cross-tab throttling / shared generation lock.
+- Variant micro-bar above itinerary instead of panel (A/B post-MVP).
+- User feedback signals (dismiss / dislike) feeding future ranking.
+- Persisting accepted vs. ignored suggestions for personalization.
+
+## 15. (Renumbered) Future Extensions (Out of Scope MVP)
+*(Section content shifted from former 14; numbering incremented for inserted decisions section.)*
 
 ---
 
-## 14. Future Extensions (Out of Scope MVP)
+### Future Extensions
 - Real weather API integration (Open-Meteo) with caching
 - Strike/disruption feed ingestion
 - Cost estimation + budget optimization suggestions
@@ -244,14 +265,14 @@ Heuristics:
 
 ---
 
-## 15. Security & Privacy Notes
+## 16. Security & Privacy Notes
 - No PII beyond existing trip context leaves client except what’s already in chat
 - API route enforces trip ownership via Supabase auth (reuse existing pattern)
 - Sanitization of model output to avoid prompt injection (strip extraneous fields)
 
 ---
 
-## 16. Risk Assessment
+## 17. Risk Assessment
 | Risk | Mitigation |
 |------|------------|
 | Model outputs markdown instead of JSON | Retry with explicit correction prompt |
@@ -261,7 +282,7 @@ Heuristics:
 
 ---
 
-## 17. Example AI Response (Target)
+## 18. Example AI Response (Target)
 ```json
 [
   {
@@ -280,7 +301,7 @@ Heuristics:
 
 ---
 
-## 18. Acceptance Checklist (MVP Ready)
+## 19. Acceptance Checklist (MVP Ready)
 - [ ] API returns mock suggestions
 - [ ] Panel renders & toggles
 - [ ] AI JSON adherence validated with fallback retry path

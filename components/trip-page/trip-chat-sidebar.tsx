@@ -7,6 +7,7 @@ import { MessageBubble } from "@/components/message-bubble";
 import { Message } from "@/lib/chat-utils";
 import { ChatInput } from "@/components/chat-input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SuggestionsPanel } from '@/components/suggestions-panel';
 import { MessageSquare, Send } from "lucide-react";
 
 interface TripDetails {
@@ -168,6 +169,24 @@ export function TripChatSidebar({
             </button>
           </div>
         </form>
+        {/* Suggestions Panel Integration */}
+        <SuggestionsPanel
+          tripId={tripId}
+          destination={tripDetails.destination}
+            // TODO: derive first date & length from itinerary once available
+          firstTravelDate={undefined}
+          daySpan={undefined}
+          onApply={(prompt) => {
+            // Insert suggestion prompt as user input & send
+            (async () => {
+              try {
+                await onSendMessage(prompt);
+              } catch (e) {
+                console.error('Failed applying suggestion', e);
+              }
+            })();
+          }}
+        />
       </div>
     </div>
   );

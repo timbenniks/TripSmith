@@ -77,3 +77,26 @@ export interface HybridResponse {
   markdown: string;
   structured?: StructuredItinerary;
 }
+
+// Suggestions Engine Types (MVP)
+export type SuggestionType =
+  | 'seasonal'
+  | 'weather'
+  | 'logistics'
+  | 'etiquette'
+  | 'optimization'
+  | 'dining'
+  | 'gap'
+  | 'other';
+
+export interface Suggestion {
+  id: string; // uuid or timestamp-based id
+  type: SuggestionType;
+  title: string;
+  detail: string; // <= ~160 chars target
+  actionPrompt: string; // user message injected when applied
+  relevanceScore: number; // 0-1
+  source: 'ai' | 'deterministic' | 'hybrid';
+  tags?: string[];
+  createdAt: number; // epoch ms
+}
