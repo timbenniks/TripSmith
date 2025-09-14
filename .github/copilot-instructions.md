@@ -14,7 +14,11 @@
 4. [Development Environment](#-development-environment)
 5. [Code Organization](#-code-organization)
 6. [Best Practices](#-best-practices)
-7. [Roadmap](#-roadmap)
+7. [Accessibility Summary](#-accessibility-implementation-summary)
+8. [Code Simplification & Engine Summary](#-code-simplification--suggestions-engine-summary)
+9. [Quick Start](#-quick-start-for-new-contributors)
+
+> Roadmap moved to `ROOT/ROADMAP.md` to keep this guide focused. See that file for priorities & future phases.
 
 ---
 
@@ -599,27 +603,18 @@ transition: opacity 1.5s ease-in-out;
 
 ---
 
-## 🚀 Roadmap
-
-### **Next Phase: Suggestion Intelligence Extensions**
-
-- Weather & disruption (strike) aware travel adjustments
-  - System prompt enhancements
-- Smart deep links (Google Flights / Maps for hotels & venues / transit planners)
-  - in final itinerary rendering
-
-### **Future Development Pipeline**
-
-- **Feature**: Trip management: export (PDF, email, calendar), delete, rename
-- **Feature**: Implement Plausible analytics for privacy-focused usage tracking
-
-### **Future Enhancements**
-
-- **Accessibility (Next)**: Optional automated tooling (axe / Playwright), high-contrast & reduced-motion toggles, persisted a11y preferences
-- **Monetization**: Stripe payments for premium features
-- **Admin Dashboard**: User management, analytics, and system monitoring
-
 ---
+### � Roadmap Reference
+
+The evolving roadmap has been extracted for clarity. Consult `ROADMAP.md` (repository root) for:
+
+- Status snapshot & near-term objectives
+- Engine evolution milestones
+- Quality & testing strategy
+- Observability metrics
+- Backlog & deferred items
+
+This main guide now focuses on architecture, implementation patterns, and current system behavior.
 
 ## 📊 Code Simplification & Suggestions Engine Summary
 
