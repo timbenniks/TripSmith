@@ -196,6 +196,8 @@ Removed Tasks (historical reference):
 - F1-BE-1 (Advisories endpoint + caching) [REMOVED]
 - F1-UI-1 (Manual advisories fetch panel) [REMOVED]
 
+### F2 Deep links
+
 - F2-BE-1 [F2] BE Utility: flight link builder (origin, destination, date) Google Flights URL encode [DONE]
 - F2-BE-2 [F2] BE Utility: maps link builder (lat/long or name) [DONE]
 - F2-FE-1 [F2] FE Extend itinerary renderer to show link icons (aria-label) [DONE]
@@ -258,8 +260,7 @@ Removed Tasks (historical reference):
 - TD4-UTIL-1 [TD4] UTIL Create `lib/date-utils.ts` (travel date parsing) and migrate usage [NS]
 - TD4-UTIL-2 [TD4] UTIL Create `lib/link-builders.ts` scaffolding (flight/maps placeholders) [NS]
 - TD4-UTIL-3 [TD4] UTIL Split `suggestions-utils.ts` into canonical/contextual/engine modules + barrel [NS]
-- TD4-LEGACY-1 [TD4] LEGACY Quarantine or remove unused `lib/pdf-utils.ts` [NS]
-- TD4-LEGACY-1 [TD4] LEGACY Quarantine or remove unused `lib/pdf-utils.ts` [DONE]
+- TD4-LEGACY-1 [TD4] LEGACY Remove unused legacy `lib/pdf-utils.ts` & `lib/markdown-utils.ts` [DONE]
 - TD4-TST-1 [TD4] TST Add initial Vitest config + smoke test for itinerary extraction (coordinates with TD2) [NS]
 - TD4-FE-4 [TD4] FE Extract `SuggestionBubble` + `SuggestionFormContainer` from `suggestion-bubbles-bar.tsx` [NS]
 - TD4-FE-5 [TD4] FE Unify legacy `chat-interface` streaming with mature trip page implementation [NS]

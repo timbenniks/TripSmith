@@ -292,7 +292,7 @@ The codebase features a comprehensive shared utility architecture that eliminate
 
 **Used by**: chat-interface.tsx, mature-trip-page.tsx, streaming-utils.ts
 
-<!-- Deprecated (present but unused): lib/markdown-utils.ts & lib/pdf-utils.ts retained temporarily for potential future export functionality; not imported in current runtime. -->
+<!-- Removed legacy modules: lib/markdown-utils.ts & lib/pdf-utils.ts (quarantined during TD sweep). Reintroduce export/table processing later under F3X if needed. -->
 
 #### **lib/markdown-components.tsx** (96 lines)
 
