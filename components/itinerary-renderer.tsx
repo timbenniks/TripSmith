@@ -1,7 +1,6 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { motion } from "framer-motion";
 
 interface ItineraryData {
   type: "complete_itinerary";
@@ -55,12 +54,7 @@ interface ItineraryRendererProps {
 
 export function ItineraryRenderer({ data }: ItineraryRendererProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6 xl:space-y-8"
-    >
+    <div className="space-y-6 xl:space-y-8">
       {/* Trip Header */}
       <Card className="bg-black/20 backdrop-blur-2xl border-white/30 p-6 xl:p-8 text-white shadow-2xl ring-1 ring-white/20">
         <div className="space-y-2">
@@ -305,6 +299,6 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
           )}
         </Card>
       )}
-    </motion.div>
+    </div>
   );
 }

@@ -30,11 +30,7 @@ export function TripItineraryDisplay({
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
+        <div className="text-center">
           <LoadingSpinner size="lg" className="mb-4" />
           <p className="text-white/70 text-lg">
             Creating your perfect itinerary...
@@ -42,7 +38,7 @@ export function TripItineraryDisplay({
           <p className="text-white/50 text-sm mt-2">
             This may take a few moments
           </p>
-        </motion.div>
+        </div>
       </div>
     );
   }
