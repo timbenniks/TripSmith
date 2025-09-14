@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { getServerClient } from '@/lib/supabase-server';
+import { jsonError } from '@/lib/api-errors';
 import { HybridResponse } from '@/lib/types';
 
 // Allow streaming responses up to 30 seconds
@@ -16,11 +16,14 @@ interface TripDetails {
 
 export async function POST(req: Request) {
   try {
-    console.log('Chat API called');
-
-    // For now, let's temporarily disable server-side auth check
-    // and rely on client-side authentication
-    // TODO: Implement proper server-side auth check
+    // Auth check using centralized server client
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const supabase = await getServerClient(token);
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      return jsonError('NO_SESSION', 'Authentication required', 401);
+    }
 
     const { messages, tripDetails, tripId } = await req.json() as {
       messages: any[],
@@ -28,11 +31,7 @@ export async function POST(req: Request) {
       tripId?: string
     };
 
-    console.log('Request data:', {
-      messagesCount: messages?.length,
-      tripDetails: !!tripDetails,
-      tripId
-    });    // Create a system prompt that includes trip context
+    // Create a system prompt that includes trip context
     const systemPrompt = `You are TripSmith, a concise travel-planning assistant specializing in detailed, personalized itineraries for solo business travelers. You have extensive knowledge of destinations worldwide, including hotels, restaurants, attractions, transportation, and local customs.
 
 Your approach is:

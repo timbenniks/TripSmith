@@ -16,6 +16,7 @@ import {
   makeChatRequest,
 } from "@/lib/streaming-utils";
 import { UiDirectivesPayload } from "@/lib/types";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface TripDetails {
   timezone: string;
@@ -50,6 +51,8 @@ export function MatureTripPage({
   );
   const [autoCompleteChecked, setAutoCompleteChecked] = useState(false);
   const [showCompleteSuggestion, setShowCompleteSuggestion] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // (Removed PDF test: deprecated PDF export layer)
 
@@ -185,23 +188,25 @@ export function MatureTripPage({
     }
   }, [trip, autoCompleteChecked]);
 
-  const handleDelete = async () => {
-    if (
-      confirm(
-        "Are you sure you want to delete this trip? This action cannot be undone."
-      )
-    ) {
-      try {
-        await tripService.deleteTrip(tripId);
+  const handleDeleteConfirmed = async () => {
+    setIsDeleting(true);
+    try {
+      const ok = await tripService.deleteTrip(tripId);
+      if (ok) {
         router.push("/trips");
-      } catch (error) {
-        console.error("Failed to delete trip:", error);
-        logError(error, {
-          source: "MatureTripPage",
-          extra: { action: "deleteTrip", tripId },
-        });
+      } else {
         alert("Failed to delete trip. Please try again.");
       }
+    } catch (error) {
+      console.error("Failed to delete trip:", error);
+      logError(error, {
+        source: "MatureTripPage",
+        extra: { action: "deleteTrip", tripId },
+      });
+      alert("Failed to delete trip. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -231,75 +236,76 @@ export function MatureTripPage({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
-      {/* Content overlay */}
-      <div className="relative z-10 h-screen flex flex-col">
-        {/* User Menu */}
-        <UserMenu />
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
+        {/* Content overlay */}
+        <div className="relative z-10 h-screen flex flex-col">
+          {/* User Menu */}
+          <UserMenu />
 
-        {showCompleteSuggestion && trip.status !== "completed" && (
-          <div className="mx-3 sm:mx-4 lg:mx-6 mt-2 mb-1 bg-gradient-to-r from-purple-600/30 to-fuchsia-600/30 border border-white/20 rounded-md px-3 py-2 text-xs flex items-center justify-between gap-3">
-            <div className="text-contrast-secondary">
-              Trip has ended. Mark as{" "}
-              <span className="font-semibold text-green-300">Completed</span>?
+          {showCompleteSuggestion && trip.status !== "completed" && (
+            <div className="mx-3 sm:mx-4 lg:mx-6 mt-2 mb-1 bg-gradient-to-r from-purple-600/30 to-fuchsia-600/30 border border-white/20 rounded-md px-3 py-2 text-xs flex items-center justify-between gap-3">
+              <div className="text-contrast-secondary">
+                Trip has ended. Mark as{" "}
+                <span className="font-semibold text-green-300">Completed</span>?
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={async () => {
+                    const previousStatus = trip.status;
+                    setTrip((prev) => ({ ...prev, status: "completed" }));
+                    const ok = await tripService.updateTripStatus(
+                      trip.id,
+                      "completed"
+                    );
+                    if (!ok) {
+                      setTrip((prev) => ({ ...prev, status: previousStatus }));
+                      alert("Failed to update status.");
+                    }
+                    setShowCompleteSuggestion(false);
+                  }}
+                  className="px-2 py-1 rounded-md bg-green-500/20 hover:bg-green-500/30 text-green-300 text-[11px] font-medium transition-colors"
+                >
+                  Mark Completed
+                </button>
+                <button
+                  onClick={() => setShowCompleteSuggestion(false)}
+                  className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[11px] transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                onClick={async () => {
-                  const previousStatus = trip.status;
-                  setTrip((prev) => ({ ...prev, status: "completed" }));
-                  const ok = await tripService.updateTripStatus(
-                    trip.id,
-                    "completed"
-                  );
-                  if (!ok) {
-                    setTrip((prev) => ({ ...prev, status: previousStatus }));
-                    alert("Failed to update status.");
-                  }
-                  setShowCompleteSuggestion(false);
-                }}
-                className="px-2 py-1 rounded-md bg-green-500/20 hover:bg-green-500/30 text-green-300 text-[11px] font-medium transition-colors"
-              >
-                Mark Completed
-              </button>
-              <button
-                onClick={() => setShowCompleteSuggestion(false)}
-                className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[11px] transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Header */}
-        <TripActionsHeader
-          tripId={trip.id}
-          tripName={trip.name}
-          destination={trip.destination}
-          status={trip.status}
-          onStatusChange={async (newStatus) => {
-            // Optimistic state update
-            setTrip((prev) => ({ ...prev, status: newStatus }));
-            const ok = await tripService.updateTripStatus(trip.id, newStatus);
-            if (!ok) {
-              // Revert if failed
-              setTrip((prev) => ({ ...prev, status: trip.status }));
-              alert("Failed to update status.");
-            }
-          }}
-          onDelete={handleDelete}
-          onDownloadPDF={handleDownloadPDF}
-          onShare={handleShare}
-          onBackToTrips={() => router.push("/trips")}
-        />
+          {/* Header */}
+          <TripActionsHeader
+            tripId={trip.id}
+            tripName={trip.name}
+            destination={trip.destination}
+            status={trip.status}
+            onStatusChange={async (newStatus) => {
+              // Optimistic state update
+              setTrip((prev) => ({ ...prev, status: newStatus }));
+              const ok = await tripService.updateTripStatus(trip.id, newStatus);
+              if (!ok) {
+                // Revert if failed
+                setTrip((prev) => ({ ...prev, status: trip.status }));
+                alert("Failed to update status.");
+              }
+            }}
+            onDelete={() => setShowDeleteDialog(true)}
+            onDownloadPDF={handleDownloadPDF}
+            onShare={handleShare}
+            onBackToTrips={() => router.push("/trips")}
+          />
 
-        {/* Main Content - Two Panel Layout with proper height management */}
-        <div className="flex-1 flex min-h-0 relative w-full px-2 sm:px-4 lg:px-8">
-          <div className="flex w-full max-w-[1700px] 2xl:max-w-[1800px] mx-auto min-h-0 gap-4 xl:gap-6">
-            {/* Left Sidebar - Chat */}
-            <div
-              className={`
+          {/* Main Content - Two Panel Layout with proper height management */}
+          <div className="flex-1 flex min-h-0 relative w-full px-2 sm:px-4 lg:px-8">
+            <div className="flex w-full max-w-[1700px] 2xl:max-w-[1800px] mx-auto min-h-0 gap-4 xl:gap-6">
+              {/* Left Sidebar - Chat */}
+              <div
+                className={`
                 ${showItinerary ? "hidden lg:block" : "block"}
                 lg:w-[500px] xl:w-[600px] 2xl:w-[660px]
                 lg:min-w-[440px] lg:max-w-[700px] lg:flex-shrink-0
@@ -307,61 +313,73 @@ export function MatureTripPage({
                 bg-black/20 backdrop-blur-2xl border-r border-white/30
                 h-full overflow-hidden
               `}
-              role="complementary"
-              aria-label="Trip chat sidebar"
-            >
-              <TripChatSidebar
-                tripId={tripId}
-                messages={messages}
-                onNewMessage={handleNewMessage}
-                onItineraryUpdate={handleItineraryUpdate}
-                tripDetails={tripDetails}
-                isLoading={isLoading}
-                onSendMessage={sendMessage}
-                currentItinerary={currentItinerary}
-              />
-            </div>
+                role="complementary"
+                aria-label="Trip chat sidebar"
+              >
+                <TripChatSidebar
+                  tripId={tripId}
+                  messages={messages}
+                  onNewMessage={handleNewMessage}
+                  onItineraryUpdate={handleItineraryUpdate}
+                  tripDetails={tripDetails}
+                  isLoading={isLoading}
+                  onSendMessage={sendMessage}
+                  currentItinerary={currentItinerary}
+                />
+              </div>
 
-            {/* Right Panel - Itinerary Display */}
-            <div
-              className={`
+              {/* Right Panel - Itinerary Display */}
+              <div
+                className={`
                 ${showItinerary ? "block" : "hidden lg:block"}
                 lg:flex-1 lg:min-w-0 flex flex-col min-h-0
                 w-full h-full
                 bg-black/20 backdrop-blur-2xl
                 overflow-hidden
               `}
-              role="main"
-              aria-label="Trip itinerary display"
-            >
-              <TripItineraryDisplay
-                itineraryData={currentItinerary}
-                tripDetails={tripDetails}
-                loading={isLoading}
-                hasMessages={messages.length > 0}
-                tripId={tripId}
-              />
-            </div>
-          </div>
-
-          {/* Mobile Toggle Button */}
-          {(currentItinerary || messages.length > 0) && (
-            <button
-              onClick={() => setShowItinerary(!showItinerary)}
-              className="lg:hidden fixed bottom-4 right-4 z-30 bg-purple-600/90 hover:bg-purple-700/90 text-white p-3 rounded-full shadow-xl transition-all duration-200 cursor-pointer backdrop-blur-sm border border-white/20 ring-2 ring-purple-400/20"
-              aria-label={showItinerary ? "Show chat" : "Show itinerary"}
-            >
-              <span
-                className="text-lg"
-                role="img"
-                aria-label={showItinerary ? "Chat" : "Itinerary"}
+                role="main"
+                aria-label="Trip itinerary display"
               >
-                {showItinerary ? "💬" : "📋"}
-              </span>
-            </button>
-          )}
+                <TripItineraryDisplay
+                  itineraryData={currentItinerary}
+                  tripDetails={tripDetails}
+                  loading={isLoading}
+                  hasMessages={messages.length > 0}
+                  tripId={tripId}
+                />
+              </div>
+            </div>
+
+            {/* Mobile Toggle Button */}
+            {(currentItinerary || messages.length > 0) && (
+              <button
+                onClick={() => setShowItinerary(!showItinerary)}
+                className="lg:hidden fixed bottom-4 right-4 z-30 bg-purple-600/90 hover:bg-purple-700/90 text-white p-3 rounded-full shadow-xl transition-all duration-200 cursor-pointer backdrop-blur-sm border border-white/20 ring-2 ring-purple-400/20"
+                aria-label={showItinerary ? "Show chat" : "Show itinerary"}
+              >
+                <span
+                  className="text-lg"
+                  role="img"
+                  aria-label={showItinerary ? "Chat" : "Itinerary"}
+                >
+                  {showItinerary ? "💬" : "📋"}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="Delete Trip"
+        description="This will permanently delete the trip and its chat history. This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        busy={isDeleting}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => (!isDeleting ? setShowDeleteDialog(false) : null)}
+      />
+    </>
   );
 }

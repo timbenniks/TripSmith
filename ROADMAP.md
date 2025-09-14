@@ -110,7 +110,26 @@ Umbrella for deletion, sharing, exports.
 #### F3D Delete Trip
 
 Goal: Allow user to permanently delete their trip.
-Acceptance: Soft confirm modal; RLS ensures only owner; cascade removes chat & itinerary metadata. Status: [NS]
+Acceptance: Soft confirm modal; RLS ensures only owner; cascade removes chat & itinerary metadata.
+Status: [IP]
+
+Progress:
+
+- API route `DELETE /api/trips/[tripId]` with auth + ownership + structured errors [DONE]
+- Client service `tripService.deleteTrip` refactored to call API route (centralized logic) [DONE]
+- Accessible confirm dialog component (focus trap, ESC, overlay, busy state) [DONE]
+- Integrated modal into `MatureTripPage` replacing `window.confirm` [DONE]
+
+Next:
+
+- F3D-FE-1 refine: Add optimistic removal in dashboard list (remove card immediately; revert on failure)
+- F3D-DB-1 verify / document cascading delete (RLS + potential future relations) [NS]
+- F3D-QA-1 (Deferred until TD2): Authorization + cascade test harness [HLD]
+
+Decision Log:
+
+- Moved deletion responsibility from direct Supabase client calls to API to prepare for future audit logging / soft-delete semantics.
+- Confirm dialog implemented as reusable `ConfirmDialog` (UI layer) to support upcoming share revoke & export cancel patterns.
 
 #### F3S Sharing
 
@@ -152,6 +171,34 @@ Goal: Internal-only dashboard to view aggregate metrics & basic user management.
 Scope: Protected route `/admin`; metrics cards (trip count, active users last 7d, exports last 7d). User list with ability to resend confirmation (Supabase function) & deactivate (soft flag `deactivated_at`).
 Acceptance: Non-admin 403; all queries paginated; no PII beyond email & counts.
 Status: [NS]
+
+### AUTH Authentication Hardening
+
+Goal: Eliminate intermittent 401 responses in authenticated API routes by unifying server/client Supabase session handling and standardizing error semantics.
+Scope (In): Central server client factory, structured API error format, retrofit existing protected routes (chat, delete), lightweight session health endpoint, optimistic UI differentiation of auth errors, baseline logging & manual matrix until test harness (TD2).
+Scope (Out): Full observability stack, multi-session concurrency conflict handling (future), rate limiting (handled later under SEC), full metrics datastore.
+Success Metrics: <2% unexpected 401 rate across delete/chat requests (measured over rolling 24h dev/staging logs), 100% protected routes using shared factory, user-facing messages distinguish session-expired vs permission vs not-found.
+Risks: Silent regression if future route bypasses factory; mitigated by lint note / code search in PR template.
+Status: [NS]
+
+Tasks:
+
+- AUTH-BE-1 [AUTH] BE Create `lib/supabase-server.ts` factory (single `getServerClient()` with stable cookie adapter) and migrate all API routes. [NS]
+- AUTH-BE-2 [AUTH] BE Add `/api/auth/ping` returning `{ authenticated: boolean, userId?: string }`. 200 when authenticated, 401 otherwise. [NS]
+- AUTH-BE-3 [AUTH] BE Standardize JSON error schema `{ code, message }` + map: 401 `NO_SESSION`, 403 `NOT_OWNER`, 404 `NOT_FOUND`, 422 `INVALID_INPUT`, 500 `SERVER_ERROR`. [NS]
+- AUTH-BE-4 [AUTH] BE Retrofit existing routes (`/api/chat`, `/api/trips/[tripId]` DELETE) to use factory + error schema. [NS]
+- AUTH-FE-1 [AUTH] FE Update `trip-service.deleteTrip` to return `{ ok, status, code?, message? }` (no boolean only). [NS]
+- AUTH-FE-2 [AUTH] FE Show differentiated toasts/messages (session expired → prompt re-login modal, not owner → generic authorization message, not found → silent removal rollback). [NS]
+- AUTH-FE-3 [AUTH] FE Add session health check (invoke ping on mount of trip page; if 401 trigger auth modal). [NS]
+- AUTH-OPS-1 [AUTH] OPS Add minimal server log wrapper counting 401/403 occurrences (dev/staging only) with console summary every 50 requests. [NS]
+- AUTH-DOC-1 [AUTH] DOC Add auth section to architecture guide (flow, factory usage example, error codes). [NS]
+- AUTH-QA-1 [AUTH] QA Manual matrix doc (login state, logout mid-tab, ownership mismatch, stale page) until TD2 harness active. [NS]
+- AUTH-TST-1 [AUTH] TST (Deferred) Add Vitest auth route ping test once TD2 harness lands. Mark `[HLD]` until TD2. [HLD]
+
+Deferred / Future:
+
+- JWT refresh telemetry & proactive renewal (after metrics system). [FUTURE]
+- Cross-tab session invalidation broadcast channel. [FUTURE]
 
 ### TD1 Accessibility Audit
 
@@ -206,7 +253,7 @@ Removed Tasks (historical reference):
 ### F3 Trip Management
 
 - F3D-DB-1 [F3D] DB Ensure ON DELETE CASCADE covers related tables [NS]
-- F3D-FE-1 [F3D] FE Delete action + confirm modal + optimistic UI [NS]
+- F3D-FE-1 [F3D] FE Delete action + confirm modal + optimistic UI [DONE]
 - F3S-DB-1 [F3S] DB Create `trip_shares` table + index on token [NS]
 - F3S-BE-1 [F3S] BE Endpoint POST /api/share (create token) [NS]
 - F3S-BE-2 [F3S] BE Public route token lookup (read-only serialization) [NS]

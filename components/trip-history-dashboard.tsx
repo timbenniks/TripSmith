@@ -14,11 +14,17 @@ import { TripCard } from "@/components/trip-card";
 interface TripHistoryDashboardProps {
   user: User;
   trips: Trip[];
+  onLocalDelete?: (tripId: string) => void; // optimistic removal
+  onLocalRestore?: (trip: Trip) => void; // rollback
+  onReplaceTrips?: (trips: Trip[]) => void; // future sorting updates
 }
 
 export function TripHistoryDashboard({
   user,
   trips,
+  onLocalDelete,
+  onLocalRestore,
+  onReplaceTrips,
 }: TripHistoryDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
@@ -29,8 +35,18 @@ export function TripHistoryDashboard({
   );
   const [announce, setAnnounce] = useState("");
 
+  const [liveTrips, setLiveTrips] = useState<Trip[]>(trips);
+
+  // Sync when incoming trips change (initial load only / external refresh)
+  useEffect(() => {
+    setLiveTrips(trips);
+  }, [trips]);
+
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [lastError, setLastError] = useState<string | null>(null);
+
   const filteredTrips = useMemo(() => {
-    let filtered = [...trips];
+    let filtered = [...liveTrips];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -60,7 +76,7 @@ export function TripHistoryDashboard({
       }
     });
     return filtered;
-  }, [trips, searchQuery, statusFilter, sortBy]);
+  }, [liveTrips, searchQuery, statusFilter, sortBy]);
 
   useEffect(() => {
     setAnnounce(
@@ -179,16 +195,64 @@ export function TripHistoryDashboard({
         aria-label="Trip list"
       >
         {filteredTrips.length > 0 ? (
-          filteredTrips.map((trip) => (
-            <div key={trip.id} role="listitem">
-              <Link
-                href={`/trips/${trip.id}`}
-                aria-label={`Open trip ${trip.name}`}
-              >
-                <TripCard trip={trip} onSelect={() => {}} />
-              </Link>
-            </div>
-          ))
+          filteredTrips.map((trip) => {
+            return (
+              <div key={trip.id} role="listitem" className="relative group">
+                <Link
+                  href={`/trips/${trip.id}`}
+                  aria-label={`Open trip ${trip.name}`}
+                  className="block"
+                >
+                  <TripCard trip={trip} onSelect={() => {}} />
+                </Link>
+                {/* Inline delete button (positioned absolutely over card) */}
+                <button
+                  type="button"
+                  className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-red-300 hover:text-red-200 bg-red-600/30 hover:bg-red-600/40 border border-red-600/50 rounded-md px-2 py-1 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-red-400/50"
+                  aria-label={`Delete trip ${trip.name}`}
+                  disabled={deletingIds.has(trip.id)}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (deletingIds.has(trip.id)) return;
+                    setLastError(null);
+                    const confirmed = confirm(
+                      `Delete '${trip.name}'? This cannot be undone.`
+                    );
+                    if (!confirmed) return;
+                    // optimistic remove
+                    setDeletingIds((prev) => new Set(prev).add(trip.id));
+                    setLiveTrips((prev) =>
+                      prev.filter((t) => t.id !== trip.id)
+                    );
+                    onLocalDelete?.(trip.id);
+                    try {
+                      const res = await fetch(`/api/trips/${trip.id}`, {
+                        method: "DELETE",
+                      });
+                      if (!res.ok) {
+                        throw new Error(`Delete failed: ${res.status}`);
+                      }
+                    } catch (err) {
+                      console.error("Dashboard delete failed", err);
+                      setLastError(`Failed to delete '${trip.name}'.`);
+                      // rollback
+                      setLiveTrips((prev) => [trip, ...prev]);
+                      onLocalRestore?.(trip);
+                    } finally {
+                      setDeletingIds((prev) => {
+                        const next = new Set(prev);
+                        next.delete(trip.id);
+                        return next;
+                      });
+                    }
+                  }}
+                >
+                  {deletingIds.has(trip.id) ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+            );
+          })
         ) : (
           <div className="col-span-full">
             <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8 text-center text-white">
@@ -207,6 +271,21 @@ export function TripHistoryDashboard({
           </div>
         )}
       </div>
+      {/* Error region */}
+      {lastError && (
+        <div className="mt-6" aria-live="assertive">
+          <Card className="bg-red-900/30 border-red-400/30 text-red-200 text-sm p-3">
+            {lastError}
+          </Card>
+        </div>
+      )}
+      {lastError && (
+        <div className="mt-6" aria-live="assertive">
+          <Card className="bg-red-900/30 border-red-400/30 text-red-200 text-sm p-3">
+            {lastError}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

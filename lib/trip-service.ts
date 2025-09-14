@@ -31,6 +31,19 @@ export interface Trip {
 
 export class TripService {
   private supabaseClient = supabase;
+  private cachedAccessToken: string | null = null;
+
+  private async getAccessToken(): Promise<string | null> {
+    if (this.cachedAccessToken) return this.cachedAccessToken;
+    try {
+      const { data } = await this.supabaseClient.auth.getSession();
+      const token = data.session?.access_token || null;
+      this.cachedAccessToken = token;
+      return token;
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * Create a new trip record in the database
@@ -308,22 +321,32 @@ export class TripService {
   /**
    * Delete a trip
    */
-  async deleteTrip(tripId: string): Promise<boolean> {
+  async deleteTrip(tripId: string): Promise<{ ok: boolean; status: number; code?: string; message?: string }> {
+    // Refactored to use authenticated API route to centralize auth/ownership logic.
+    // Keeps client thinner and prepares for future audit / soft-delete.
     try {
-      const { error } = await this.supabaseClient
-        .from('trips')
-        .delete()
-        .eq('id', tripId);
+      const token = await this.getAccessToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`/api/trips/${tripId}`, {
+        method: 'DELETE',
+        headers
+      });
+      let body: any = {}; // attempt to parse body even on errors
+      try { body = await res.json(); } catch { /* ignore */ }
 
-      if (error) {
-        console.error('Error deleting trip:', error);
-        return false;
+      if (!res.ok) {
+        const code = body?.code;
+        const message = body?.message || body?.error || `status_${res.status}`;
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('deleteTrip: failed', { tripId, status: res.status, code, message, body });
+        }
+        return { ok: false, status: res.status, code, message };
       }
-
-      return true;
+      return { ok: true, status: res.status };
     } catch (error) {
-      console.error('Error in deleteTrip:', error);
-      return false;
+      console.error('Error in deleteTrip (api route):', error);
+      return { ok: false, status: 0, code: 'NETWORK_ERROR', message: 'Network or client error' };
     }
   }
 

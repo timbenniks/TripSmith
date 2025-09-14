@@ -139,7 +139,15 @@ export default function TripsPage() {
         mounted={mounted}
       />
       <div className="relative z-10 flex-1">
-        <TripHistoryDashboard user={user} trips={trips} />
+        <TripHistoryDashboard
+          user={user}
+          trips={trips}
+          onLocalDelete={(tripId) =>
+            setTrips((prev) => prev.filter((t) => t.id !== tripId))
+          }
+          onLocalRestore={(tripObj) => setTrips((prev) => [tripObj, ...prev])}
+          onReplaceTrips={(next) => setTrips(next)}
+        />
       </div>
     </div>
   );
