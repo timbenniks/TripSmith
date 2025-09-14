@@ -604,22 +604,18 @@ transition: opacity 1.5s ease-in-out;
 ### **Next Phase: Suggestion Intelligence Extensions**
 
 - Weather & disruption (strike) aware travel adjustments
-- Budget optimization heuristics
+  - System prompt enhancements
 - Smart deep links (Google Flights / Maps for hotels & venues / transit planners)
-- Lightweight preference modeling for personalization
+  - in final itinerary rendering
 
 ### **Future Development Pipeline**
 
-- **Feature 4**: User preferences for travel purpose, budget, activity types, home timezone in supabase.
-  - enhance initial prompt with user profile data.
-- **Feature 5**: Trip management: export (PDF, email), delete, rename
-- **Feature 6**: Implement Plausible analytics for privacy-focused usage tracking
-- **Feature 7**: Calendar Integration
+- **Feature**: Trip management: export (PDF, email, calendar), delete, rename
+- **Feature**: Implement Plausible analytics for privacy-focused usage tracking
 
 ### **Future Enhancements**
 
 - **Accessibility (Next)**: Optional automated tooling (axe / Playwright), high-contrast & reduced-motion toggles, persisted a11y preferences
-- **Analytics**: Plausible Analytics integration for privacy-focused tracking
 - **Monetization**: Stripe payments for premium features
 - **Admin Dashboard**: User management, analytics, and system monitoring
 
