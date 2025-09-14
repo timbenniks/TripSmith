@@ -1,4 +1,4 @@
-﻿# TripSmith Roadmap
+# TripSmith Roadmap
 
 > Agent & contributor oriented. High signal, low fluff. Detailed architectural rationale lives in `.github/copilot-instructions.md`.
 
@@ -175,46 +175,39 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 - F1-BE-1 [F1] BE Implement `/api/advisories` endpoint with caching layer [NS]
 - F1-BE-2 [F1] BE Integrate fetch trigger after dates set or on demand button [NS]
 - F1-FE-1 [F1] FE Render advisories panel in itinerary display (collapsible) [NS]
-- F1-QA-1 [F1] QA Simulate cache hit/miss; fallback messaging [NS]
 
 ### F2 Deep Links
 
 - F2-BE-1 [F2] BE Utility: flight link builder (origin, destination, date) Google Flights URL encode [NS]
 - F2-BE-2 [F2] BE Utility: maps link builder (lat/long or name) [NS]
 - F2-FE-1 [F2] FE Extend itinerary renderer to show link icons (aria-label) [NS]
-- F2-QA-1 [F2] QA Validate URL correctness & conditional rendering [NS]
 - F2-DOC-1 [F2] DOC Update architecture guide (link enrichment section) [NS]
 
 ### F3 Trip Management
 
 - F3D-DB-1 [F3D] DB Ensure ON DELETE CASCADE covers related tables [NS]
 - F3D-FE-1 [F3D] FE Delete action + confirm modal + optimistic UI [NS]
-- F3D-QA-1 [F3D] QA Verify RLS & unauthorized delete attempt fails [NS]
 - F3S-DB-1 [F3S] DB Create `trip_shares` table + index on token [NS]
 - F3S-BE-1 [F3S] BE Endpoint POST /api/share (create token) [NS]
 - F3S-BE-2 [F3S] BE Public route token lookup (read-only serialization) [NS]
 - F3S-FE-1 [F3S] FE Share UI (copy link, revoke) [NS]
 - F3S-FE-2 [F3S] FE Email share form + rate limit client handling [NS]
-- F3S-QA-1 [F3S] QA Revoke invalidation test [NS]
 - F3X-BE-1 [F3X] BE Normalized itinerary event builder (pure) [NS]
 - F3X-BE-2 [F3X] BE PDF generator module (no heavy deps) [NS]
 - F3X-BE-3 [F3X] BE ICS generator (ics pkg) [NS]
 - F3X-FE-1 [F3X] FE Export buttons + loading states [NS]
-- F3X-QA-1 [F3X] QA Snapshot PDF & ICS validation [NS]
 
 ### F4 Google OAuth
 
 - F4-OPS-1 [F4] OPS Supabase provider config [NS]
 - F4-FE-1 [F4] FE Add Google button & provider selection UI [NS]
 - F4-DOC-1 [F4] DOC Privacy + Terms pages content draft [NS]
-- F4-QA-1 [F4] QA Account linking test (same email) [NS]
 
 ### F5 Analytics
 
 - F5-FE-1 [F5] FE Add Plausible script behind env+flag [NS]
 - F5-BE-1 [F5] BE Emit server events for advisory fetch & exports [NS]
 - F5-BE-2 [F5] BE Event util wrapper (debounce duplicate events) [NS]
-- F5-QA-1 [F5] QA Event presence validation checklist [NS]
 
 ### F6 Admin
 
@@ -222,11 +215,9 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 - F6-BE-1 [F6] BE Admin metrics aggregate query service [NS]
 - F6-FE-1 [F6] FE Admin dashboard shell + auth guard [NS]
 - F6-FE-2 [F6] FE User table (paginate) + resend confirmation action [NS]
-- F6-QA-1 [F6] QA Role enforcement tests [NS]
 
 ### TD1 Accessibility
 
-- TD1-QA-1 [TD1] QA Axe automated sweep script (Playwright) [NS]
 - TD1-FE-1 [TD1] FE Fix identified critical violations (focus order, labels) [NS]
 
 ### TD2 Tests
@@ -246,7 +237,6 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 - M1-DB-1 [M1] DB Plan tables (plans, user_plans, feature_flags) [NS]
 - M1-BE-1 [M1] BE Stripe webhook handler (checkout.session.completed) [NS]
 - M1-FE-1 [M1] FE Upgrade CTA + paywall wrappers [NS]
-- M1-QA-1 [M1] QA Downgrade grace period scenario [NS]
 
 ## 8. Operational Conventions
 
@@ -268,5 +258,22 @@ Keep PRDs concise; move deep algorithm notes to architecture guide. Do not dupli
 ---
 
 Backlog Items not yet PRD'ed (expansion candidates): multi-locale, offline mode, collaborative editing, weather alert push, personalization ranking.
+
+## 11. Deferred QA Tasks (Placeholder)
+
+Reintroduced later when test harness (TD2) is active. Original QA task IDs reserved but intentionally omitted from active task list to reduce noise while core implementation slices proceed. When reinstating, use the prior naming pattern:
+
+- F1-QA-1 (Advisories cache hit/miss & fallback rendering)
+- F2-QA-1 (Deep link URL correctness & conditional rendering)
+- F3D-QA-1 (Delete trip authorization & cascading)
+- F3S-QA-1 (Share token revoke + public access matrix)
+- F3X-QA-1 (PDF & ICS output snapshot / structural validation)
+- F4-QA-1 (Google account linking path)
+- F5-QA-1 (Analytics event emission integrity)
+- F6-QA-1 (Admin role enforcement & pagination)
+- TD1-QA-1 (Automated a11y sweep baseline)
+- M1-QA-1 (Monetization downgrade grace period)
+
+Do not reuse these IDs for non-QA scope. Mark them `[NS]` upon reactivation. Until then, QA validation is ad-hoc within implementation PRs.
 
 End of roadmap.
