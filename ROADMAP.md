@@ -37,6 +37,7 @@ Plan trips through a conversational + structured hybrid flow: fast logistics cap
 | TD1  | Accessibility Full Audit & Fixes                                  |
 | TD2  | Test Harness (Vitest)                                             |
 | TD3  | Performance Optimization Pass                                     |
+| TD4  | Codebase Simplification & Convergence                             |
 | M1   | Monetization (Stripe + Plans + Feature Flags)                     |
 
 > Consolidation: Export PDF + ICS under F3X to share transformation pipeline (render → convert → deliver).
@@ -159,6 +160,15 @@ Status: [NS]
 Goal: Measure & optimize TTFB, hydration cost, reduce bundle drift post-new features.
 Status: [NS]
 
+### TD4 Codebase Simplification & Convergence
+
+Goal: Reduce cognitive load, unify streaming/chat paths, and prepare surface for reliable tests & future features (exports, advisories) without duplication.
+Scope (In): Extraction of hooks from monoliths, removal/quarantine of deprecated modules, unification of streaming logic, modularization of suggestions engine, introduction of date & link utility modules.
+Scope (Out): Architectural rewrites (no state machine yet), full design system overhaul, performance micro-optimizations (covered by TD3).
+Success Metrics: Reduced largest component (<400 lines), single streaming implementation, <5% diff in bundle size after refactor, zero regression in itinerary generation.
+Risks: Parallel feature work conflicting with file splits → mitigate by landing TD4 tasks before starting F1 & F2 heavy UI changes.
+Status: [NS]
+
 ### M1 Monetization (Stripe)
 
 Goal: Paid plan gating (exports, advanced advisories tiers) after analytics baseline.
@@ -231,6 +241,23 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 - TD3-OPS-1 [TD3] OPS Add bundle analyzer script (flag triggered) [NS]
 - TD3-FE-1 [TD3] FE Code split export modules [NS]
 - TD3-BE-1 [TD3] BE Measure advisory endpoint p95 latency instrumentation [NS]
+
+### TD4 Codebase Simplification
+
+- TD4-FE-1 [TD4] FE Extract `useTripBootstrap` hook from `chat-interface.tsx` (resume logic + date span) [NS]
+- TD4-FE-2 [TD4] FE Extract `useStreamingChat` wrapping `handleStreamingResponse` replacing inline send logic [NS]
+- TD4-FE-3 [TD4] FE Add `LiveRegions` component; remove inline polite/assertive div duplication [NS]
+- TD4-UTIL-1 [TD4] UTIL Create `lib/date-utils.ts` (travel date parsing) and migrate usage [NS]
+- TD4-UTIL-2 [TD4] UTIL Create `lib/link-builders.ts` scaffolding (flight/maps placeholders) [NS]
+- TD4-UTIL-3 [TD4] UTIL Split `suggestions-utils.ts` into canonical/contextual/engine modules + barrel [NS]
+- TD4-LEGACY-1 [TD4] LEGACY Quarantine or remove unused `lib/pdf-utils.ts` [NS]
+ - TD4-LEGACY-1 [TD4] LEGACY Quarantine or remove unused `lib/pdf-utils.ts` [DONE]
+- TD4-TST-1 [TD4] TST Add initial Vitest config + smoke test for itinerary extraction (coordinates with TD2) [NS]
+- TD4-FE-4 [TD4] FE Extract `SuggestionBubble` + `SuggestionFormContainer` from `suggestion-bubbles-bar.tsx` [NS]
+- TD4-FE-5 [TD4] FE Unify legacy `chat-interface` streaming with mature trip page implementation [NS]
+- TD4-FE-6 [TD4] FE Reduce `chat-interface.tsx` below 400 LOC post-extraction [NS]
+
+Note: TD4-TST-1 seeds test harness but full suite expansion remains under TD2. Avoid duplicating configuration effort.
 
 ### M1 Monetization (Later)
 
