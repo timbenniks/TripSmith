@@ -4,14 +4,14 @@
 
 ## 1. Status Snapshot
 
-| Area | State | Notes |
-|------|-------|-------|
-| Core Architecture | Stable | Refactored utilities, suggestion engine hook shipped |
-| Accessibility | Baseline Complete | Automation (axe / Playwright) deferred |
-| Suggestions Engine | V1 Stable | Hash‑gated updates, directive parsing, suppression heuristics |
-| Streaming / Itinerary | Stable | JSON-only regeneration explicit, partial edits staged |
-| Performance | Good | Removed legacy PDF + heavy animations on trip pages |
-| Testing | Minimal | Smoke script only; unit/integration pending |
+| Area                  | State             | Notes                                                         |
+| --------------------- | ----------------- | ------------------------------------------------------------- |
+| Core Architecture     | Stable            | Refactored utilities, suggestion engine hook shipped          |
+| Accessibility         | Baseline Complete | Automation (axe / Playwright) deferred                        |
+| Suggestions Engine    | V1 Stable         | Hash‑gated updates, directive parsing, suppression heuristics |
+| Streaming / Itinerary | Stable            | JSON-only regeneration explicit, partial edits staged         |
+| Performance           | Good              | Removed legacy PDF + heavy animations on trip pages           |
+| Testing               | Minimal           | Smoke script only; unit/integration pending                   |
 
 ## 2. Near-Term (Next 4–6 Weeks)
 
@@ -23,16 +23,17 @@
 
 ## 3. Engine Evolution
 
-| Goal | Detail | Exit Criteria |
-|------|--------|---------------|
-| Ranking Weights | Introduce scoring pipeline (contextual, server, directives) | Deterministic order with tie-break docs |
-| Directive Schema v1 | Freeze `ui_directives` shape + version key | Validation + fallback path implemented |
-| Personalization Hooks | Use user preferences to bias suggestion scores | Score delta visible in debug output |
-| Safe Expansion Guard | Token length & section diffusion controls on regeneration | Regen fails safely with truncated summary + log |
+| Goal                  | Detail                                                      | Exit Criteria                                   |
+| --------------------- | ----------------------------------------------------------- | ----------------------------------------------- |
+| Ranking Weights       | Introduce scoring pipeline (contextual, server, directives) | Deterministic order with tie-break docs         |
+| Directive Schema v1   | Freeze `ui_directives` shape + version key                  | Validation + fallback path implemented          |
+| Personalization Hooks | Use user preferences to bias suggestion scores              | Score delta visible in debug output             |
+| Safe Expansion Guard  | Token length & section diffusion controls on regeneration   | Regen fails safely with truncated summary + log |
 
 ## 4. Quality & Testing
 
 Planned Layers:
+
 - Unit: `buildContextualSuggestions`, directive application, suppression (pendingRegen + stagedEdits permutations), hash gating (no redundant renders).
 - Integration: Streaming endpoint returns fenced JSON; malformed directive block ignored gracefully.
 - A11y Automation (Phase 1): axe-core scan of trip page + chat; Playwright script for suggestions keyboard nav.
@@ -41,12 +42,14 @@ Planned Layers:
 ## 5. Observability & Metrics
 
 Initial Metrics (dev console or lightweight endpoint):
+
 - `suggestion_recompute_count`
 - `regen_trigger_count`
 - `stream_completion_ms` (client measured)
 - `directive_parse_fail_count`
 
 Logging Guidelines:
+
 - Warn (not error) on unknown directive IDs.
 - Error only on JSON itinerary parse failure post-regeneration.
 
@@ -67,9 +70,10 @@ Logging Guidelines:
 
 ## 8. Change Log
 
-| Date | Change | Notes |
-|------|--------|-------|
+| Date       | Change                                      | Notes                                  |
+| ---------- | ------------------------------------------- | -------------------------------------- |
 | 2025-09-14 | Extracted roadmap from copilot instructions | Added structured sections & priorities |
 
 ---
+
 **Editing Rules:** Keep sections lean; move deep rationale to architecture guide. Avoid duplicating live code comments.

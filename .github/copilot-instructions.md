@@ -604,6 +604,7 @@ transition: opacity 1.5s ease-in-out;
 ---
 
 ---
+
 ### � Roadmap Reference
 
 The evolving roadmap has been extracted for clarity. Consult `ROADMAP.md` (repository root) for:
