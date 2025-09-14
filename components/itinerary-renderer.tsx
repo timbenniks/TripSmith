@@ -1,6 +1,11 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import {
+  buildGoogleFlightsUrl,
+  buildGoogleMapsSearchUrl,
+} from "@/lib/link-builders";
+import { ExternalLink } from "lucide-react";
 
 interface ItineraryData {
   type: "complete_itinerary";
@@ -117,20 +122,42 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                 </tr>
               </thead>
               <tbody>
-                {data.flights.map((flight, index) => (
-                  <tr key={index} className="border-b border-white/10">
-                    <td className="py-3">{flight.date}</td>
-                    <td className="py-3 font-medium text-blue-300">
-                      {flight.flightNumber}
-                    </td>
-                    <td className="py-3">
-                      {flight.route.from}-{flight.route.to}
-                    </td>
-                    <td className="py-3">{flight.departure}</td>
-                    <td className="py-3">{flight.arrival}</td>
-                    <td className="py-3">{flight.terminal || "-"}</td>
-                  </tr>
-                ))}
+                {data.flights.map((flight, index) => {
+                  const flightsFlag =
+                    process.env.NEXT_PUBLIC_DEEP_LINKS_ENABLED === "1";
+                  const flightUrl = flightsFlag
+                    ? buildGoogleFlightsUrl({
+                        origin: flight.route.from,
+                        destination: flight.route.to,
+                        departDate: flight.date,
+                      })
+                    : null;
+                  return (
+                    <tr key={index} className="border-b border-white/10">
+                      <td className="py-3">{flight.date}</td>
+                      <td className="py-3 font-medium text-blue-300 flex items-center gap-2">
+                        <span>{flight.flightNumber}</span>
+                        {flightUrl && (
+                          <a
+                            href={flightUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Open flight search ${flight.route.from} to ${flight.route.to}`}
+                            className="text-white/50 hover:text-white transition-colors"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        {flight.route.from}-{flight.route.to}
+                      </td>
+                      <td className="py-3">{flight.departure}</td>
+                      <td className="py-3">{flight.arrival}</td>
+                      <td className="py-3">{flight.terminal || "-"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -206,17 +233,40 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                 </tr>
               </thead>
               <tbody>
-                {data.dailySchedule.map((item, index) => (
-                  <tr key={index} className="border-b border-white/10">
-                    <td className="py-3">{item.date}</td>
-                    <td className="py-3 font-medium">{item.time}</td>
-                    <td className="py-3 text-yellow-300">{item.activity}</td>
-                    <td className="py-3">{item.location}</td>
-                    <td className="py-3 text-contrast-tertiary">
-                      {item.notes || "-"}
-                    </td>
-                  </tr>
-                ))}
+                {data.dailySchedule.map((item, index) => {
+                  const linksFlag =
+                    process.env.NEXT_PUBLIC_DEEP_LINKS_ENABLED === "1";
+                  let mapsUrl: string | null = null;
+                  if (linksFlag && item.location && item.location.length > 2) {
+                    mapsUrl = buildGoogleMapsSearchUrl({
+                      query: item.location,
+                    });
+                  }
+                  return (
+                    <tr key={index} className="border-b border-white/10">
+                      <td className="py-3">{item.date}</td>
+                      <td className="py-3 font-medium">{item.time}</td>
+                      <td className="py-3 text-yellow-300">{item.activity}</td>
+                      <td className="py-3 flex items-center gap-2">
+                        <span>{item.location}</span>
+                        {mapsUrl && (
+                          <a
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Open map for ${item.location}`}
+                            className="text-white/50 hover:text-white transition-colors"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </td>
+                      <td className="py-3 text-contrast-tertiary">
+                        {item.notes || "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

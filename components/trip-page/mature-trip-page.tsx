@@ -339,6 +339,7 @@ export function MatureTripPage({
                 tripDetails={tripDetails}
                 loading={isLoading}
                 hasMessages={messages.length > 0}
+                tripId={tripId}
               />
             </div>
           </div>

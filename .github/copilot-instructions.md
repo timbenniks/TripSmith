@@ -681,3 +681,47 @@ It validates that a fenced JSON block is detected and parsed, exiting non-zero i
 ---
 
 This comprehensive guide provides everything needed to understand, develop, and extend the TripSmith codebase while maintaining consistency and quality.
+
+---
+
+## 🔗 Link Enrichment (F2)
+
+### Goals
+
+Introduce deterministic, pure deep links (flights & map locations) without mutating stored itinerary JSON or requiring AI regeneration.
+
+### Implemented (Phase 1)
+
+- `buildGoogleFlightsUrl()` – flight search query generation.
+- `buildGoogleMapsSearchUrl()` – map query or lat/long viewport.
+- Conditional rendering in `ItineraryRenderer` behind `NEXT_PUBLIC_DEEP_LINKS_ENABLED` flag.
+- Accessible external link icons with descriptive `aria-label`s.
+
+### Principles
+
+1. Purity: no side effects, no network calls.
+2. Isolation: enrichment only at render layer; original itinerary JSON remains unchanged.
+3. Fail Safe: missing required fields → suppress link (no broken anchors).
+4. Accessibility: icon conveys action; label clarifies destination.
+5. Extensibility: future builders (hotel, transit) co-located in `lib/link-builders.ts`.
+
+### Future Roadmap
+
+- Hotel search links (check-in/out inference)
+- Transit / directions builder (city heuristics)
+- Analytics event `deep_link_click` (with type & entity) under F5
+- Vitest URL snapshot tests (post TD2 harness)
+- Error & suppression telemetry
+
+### Anti-Goals (Current Phase)
+
+- No affiliate tagging
+- No scraping or dynamic pricing
+- No server redirect layer
+
+### Integration Notes
+
+- Keep flag disabled in staging until link accuracy validated.
+- When analytics on: wrap anchor `onClick` to emit event with debounce.
+
+---
