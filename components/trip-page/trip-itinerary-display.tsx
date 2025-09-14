@@ -5,6 +5,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ItineraryRenderer } from "@/components/itinerary-renderer";
+import { useState, useCallback } from "react";
+import { useAuth } from "@/components/auth-provider";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 import { CalendarDays, MapPin, Clock, Sparkles } from "lucide-react";
 
 interface TripDetails {
@@ -19,6 +23,7 @@ interface TripItineraryDisplayProps {
   tripDetails: TripDetails;
   loading?: boolean;
   hasMessages?: boolean;
+  tripId: string; // explicit trip context (fixes advisory fetch context)
 }
 
 export function TripItineraryDisplay({
@@ -26,7 +31,10 @@ export function TripItineraryDisplay({
   tripDetails,
   loading = false,
   hasMessages = false,
+  tripId,
 }: TripItineraryDisplayProps) {
+  const { session } = useAuth(); // session retained in case future features need it (advisories removed)
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -156,6 +164,7 @@ export function TripItineraryDisplay({
           {/* Itinerary Content */}
           <div className="space-y-4 sm:space-y-6 pb-4 sm:pb-6">
             <ItineraryRenderer data={itineraryData} />
+            {/* Advisories feature removed (panel intentionally omitted) */}
           </div>
         </motion.div>
       </ScrollArea>

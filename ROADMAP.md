@@ -25,7 +25,7 @@ Plan trips through a conversational + structured hybrid flow: fast logistics cap
 
 | Code | Track / Feature                                                   |
 | ---- | ----------------------------------------------------------------- |
-| F1   | Weather & Disruption Advisories                                   |
+| F1   | Weather & Disruption Advisories (Deferred)                        |
 | F2   | Smart Deep Links (flights, venues, hotels, transit)               |
 | F3   | Trip Management Core (Delete, Public Share, Email Share, Exports) |
 | F3D  | Delete Trip (sub-slice)                                           |
@@ -58,7 +58,7 @@ TD tasks cut across; TD2 ideally before M1 billing logic
 
 ## 6. PRDs (Concise)
 
-### F1 Weather & Disruption Advisories
+### F1 Weather & Disruption Advisories (Deferred)
 
 Goal: Surface contextual weather + disruption notes (e.g., typhoon season, transit strikes) non-destructively inside itinerary helpful notes section.
 Scope (In): Server-side fetch (Open-Meteo or placeholder abstraction), seasonal heuristics, caching per destination+date range (24h TTL), merge as advisory blocks with `source` + `retrievedAt`.
@@ -76,7 +76,7 @@ User Stories:
 3. Caching prevents >1 external call per trip per 24h.
    Metrics: advisory fetch latency, cache hit ratio, presence adoption (% trips with advisories fetched).
    Risks: External API flakiness → mitigation: graceful degrade with placeholder message.
-   Status: [NS]
+   Status: [HLD]
 
 ### F2 Smart Deep Links
 
@@ -93,7 +93,15 @@ User Stories:
 1. No 4xx for constructed URLs (basic encode tests).
 2. Links only appear when required fields available.
 3. Feature flag `DEEP_LINKS_ENABLED` toggles enrichment.
-   Status: [NS]
+   Status: [IP]
+   Progress: Flight link builder, Maps link builder, itinerary renderer integration, and architecture docs shipped behind flag `NEXT_PUBLIC_DEEP_LINKS_ENABLED`.
+   Next Slice Targets:
+   - F2-BE-3 Hotel search link builder (property + city + check-in/out)
+   - F2-BE-4 Transit directions URL builder (origin/destination heuristics)
+   - F2-FE-2 A11y: improved aria-label tooltips + focus styles for link icons
+   - F2-QA-1 (post TD2) Vitest snapshot/encoding tests for builders
+   - F2-AN-1 Analytics event `deep_link_click` (after F5 baseline)
+   - F2-OBS-1 Suppression telemetry for skipped links (missing required fields)
 
 ### F3 Trip Management Core
 
@@ -181,17 +189,17 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 
 ### F1 Initial Slice
 
-- F1-DB-1 [F1] DB Create advisory cache table (trip_id fk, key hash, payload jsonb, fetched_at) [NS]
-- F1-BE-1 [F1] BE Implement `/api/advisories` endpoint with caching layer [NS]
-- F1-BE-2 [F1] BE Integrate fetch trigger after dates set or on demand button [NS]
-- F1-FE-1 [F1] FE Render advisories panel in itinerary display (collapsible) [NS]
+F1 track deferred after initial experimental slice due to low reliability / auth friction. Endpoint, UI panel, and schema artifacts removed to reduce maintenance surface. Re-introduce later with external provider integration + test harness.
 
-### F2 Deep Links
+Removed Tasks (historical reference):
 
-- F2-BE-1 [F2] BE Utility: flight link builder (origin, destination, date) Google Flights URL encode [NS]
-- F2-BE-2 [F2] BE Utility: maps link builder (lat/long or name) [NS]
-- F2-FE-1 [F2] FE Extend itinerary renderer to show link icons (aria-label) [NS]
-- F2-DOC-1 [F2] DOC Update architecture guide (link enrichment section) [NS]
+- F1-BE-1 (Advisories endpoint + caching) [REMOVED]
+- F1-UI-1 (Manual advisories fetch panel) [REMOVED]
+
+- F2-BE-1 [F2] BE Utility: flight link builder (origin, destination, date) Google Flights URL encode [DONE]
+- F2-BE-2 [F2] BE Utility: maps link builder (lat/long or name) [DONE]
+- F2-FE-1 [F2] FE Extend itinerary renderer to show link icons (aria-label) [DONE]
+- F2-DOC-1 [F2] DOC Update architecture guide (link enrichment section) [DONE]
 
 ### F3 Trip Management
 
@@ -251,7 +259,7 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 - TD4-UTIL-2 [TD4] UTIL Create `lib/link-builders.ts` scaffolding (flight/maps placeholders) [NS]
 - TD4-UTIL-3 [TD4] UTIL Split `suggestions-utils.ts` into canonical/contextual/engine modules + barrel [NS]
 - TD4-LEGACY-1 [TD4] LEGACY Quarantine or remove unused `lib/pdf-utils.ts` [NS]
- - TD4-LEGACY-1 [TD4] LEGACY Quarantine or remove unused `lib/pdf-utils.ts` [DONE]
+- TD4-LEGACY-1 [TD4] LEGACY Quarantine or remove unused `lib/pdf-utils.ts` [DONE]
 - TD4-TST-1 [TD4] TST Add initial Vitest config + smoke test for itinerary extraction (coordinates with TD2) [NS]
 - TD4-FE-4 [TD4] FE Extract `SuggestionBubble` + `SuggestionFormContainer` from `suggestion-bubbles-bar.tsx` [NS]
 - TD4-FE-5 [TD4] FE Unify legacy `chat-interface` streaming with mature trip page implementation [NS]
