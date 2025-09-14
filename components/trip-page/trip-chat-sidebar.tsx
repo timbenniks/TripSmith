@@ -147,6 +147,7 @@ export function TripChatSidebar({
             firstTravelDate={undefined}
             daySpan={undefined}
             itineraryData={currentItinerary}
+            userMessageCount={messages.filter((m) => m.role === "user").length}
             aiDirectives={(() => {
               // Get latest assistant message with uiDirectives
               for (let i = messages.length - 1; i >= 0; i--) {

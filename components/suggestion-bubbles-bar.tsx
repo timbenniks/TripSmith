@@ -1,10 +1,19 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useRovingFocus } from "@/lib/use-roving-focus";
 import { Suggestion, StructuredItinerary } from "@/lib/types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { logError } from "@/lib/error-logger";
+import {
+  buildContextualSuggestions,
+  toCanonical,
+  InternalSuggestion,
+  useSuggestionEngine,
+} from "@/lib/suggestions-utils";
+import { FlightSegmentsForm } from "@/components/suggestions/flight-segments-form";
+import { HotelDetailsForm } from "@/components/suggestions/hotel-details-form";
+import { TravelDatesForm } from "@/components/suggestions/travel-dates-form";
 
 interface SuggestionBubblesBarProps {
   tripId: string;
@@ -15,15 +24,19 @@ interface SuggestionBubblesBarProps {
   onApplyPrompt: (prompt: string) => void; // direct send
   onPrefillPrompt?: (prompt: string) => void; // prefill into input only
   aiDirectives?: import("@/lib/types").UiDirectivesPayload; // optional AI supplied directives
+  /** Optional count of user messages (to drive stale pendingRegen reminder) */
+  userMessageCount?: number;
 }
 
 type State = "idle" | "loading" | "ready" | "error";
 
-interface FlightFormState {
-  departureFlight?: string;
-  returnFlight?: string;
-  departureTime?: string;
-  returnTime?: string;
+interface FlightSegment {
+  id: string;
+  direction: "outbound" | "inbound";
+  flightNumber?: string;
+  route?: string;
+  depTime?: string;
+  arrTime?: string;
 }
 interface HotelFormState {
   hotelName?: string;
@@ -31,9 +44,7 @@ interface HotelFormState {
   checkOut?: string;
 }
 
-interface InternalSuggestion extends Suggestion {
-  mode?: "send" | "prefill";
-}
+// InternalSuggestion now imported from suggestions-utils
 
 export function SuggestionBubblesBar({
   tripId,
@@ -44,14 +55,18 @@ export function SuggestionBubblesBar({
   onApplyPrompt,
   onPrefillPrompt,
   aiDirectives,
+  userMessageCount,
 }: SuggestionBubblesBarProps) {
   const [state, setState] = useState<State>("idle");
   const [apiSuggestions, setApiSuggestions] = useState<Suggestion[]>([]);
-  const [suggestions, setSuggestions] = useState<InternalSuggestion[]>([]);
+  // Suggestions will be derived via useSuggestionEngine after prerequisite state is declared.
   const [activeForm, setActiveForm] = useState<
     "flight" | "hotel" | "dates" | null
   >(null);
-  const [flightForm, setFlightForm] = useState<FlightFormState>({});
+  const [flightSegments, setFlightSegments] = useState<FlightSegment[]>([
+    { id: Math.random().toString(36).slice(2), direction: "outbound" },
+    { id: Math.random().toString(36).slice(2), direction: "inbound" },
+  ]);
   const [hotelForm, setHotelForm] = useState<HotelFormState>({});
   const [datesForm, setDatesForm] = useState<{ start?: string; end?: string }>(
     {}
@@ -59,17 +74,160 @@ export function SuggestionBubblesBar({
   const [datesError, setDatesError] = useState<string>("");
   const [inferredDaySpan, setInferredDaySpan] = useState<number | null>(null);
   const [announce, setAnnounce] = useState("");
+  const [flightAriaMessage, setFlightAriaMessage] = useState("");
+  // Refs typed without nullable generic to align with extracted component prop types; runtime still guards null access.
+  const addOutboundBtnRef = useRef<HTMLButtonElement>(null as any);
+  const addInboundBtnRef = useRef<HTMLButtonElement>(null as any);
   // Track suggestion ids (contextual ids like ctx-flight) that have been used so we can optimistically hide them
+  // We now store dismissal by canonical id (e.g. add_flights) instead of raw ctx-/ai- ids.
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   // Track whether we have local pending edits that haven't triggered a full regeneration yet
   const [pendingRegen, setPendingRegen] = useState(false);
-  // Rehydrate dismissedIds per trip from localStorage (simple persistence so bubbles stay gone)
+  // Record which specific logistic edit types were staged so we only hide those bubbles (not unrelated ones)
+  const [stagedEdits, setStagedEdits] = useState<{
+    flights?: boolean;
+    hotel?: boolean;
+    dates?: boolean;
+  }>({});
+  // Track when pendingRegen was first set (user message count snapshot)
+  const [pendingRegenStartCount, setPendingRegenStartCount] = useState<
+    number | null
+  >(null);
+  useEffect(() => {
+    if (
+      pendingRegen &&
+      pendingRegenStartCount == null &&
+      typeof userMessageCount === "number"
+    ) {
+      setPendingRegenStartCount(userMessageCount);
+    }
+    if (!pendingRegen) {
+      setPendingRegenStartCount(null);
+    }
+  }, [pendingRegen, userMessageCount, pendingRegenStartCount]);
+  const stalePending = useMemo(() => {
+    if (
+      !pendingRegen ||
+      pendingRegenStartCount == null ||
+      typeof userMessageCount !== "number"
+    )
+      return false;
+    return userMessageCount - pendingRegenStartCount >= 3; // 3 user messages without regeneration
+  }, [pendingRegen, pendingRegenStartCount, userMessageCount]);
+
+  // ---------------- Inference Helpers ----------------
+  // Attempt to infer a trip date range from existing itinerary header or flights
+  const inferDateRange = useCallback((): { start?: string; end?: string } => {
+    // 1. If itinerary header already has dates in a known "Start – End" pattern, try to parse
+    const headerDates = itineraryData?.tripHeader?.dates;
+    if (headerDates) {
+      // Common separators: '-', '–', 'to'
+      const parts = headerDates.split(/\s+[–-]|to\s+/i);
+      if (parts.length >= 2) {
+        const startRaw = parts[0].trim();
+        const endRaw = parts[1].trim();
+        // Very light heuristic: accept ISO-looking or YYYY/MM/DD or Month DD forms left as-is
+        if (startRaw && endRaw) {
+          return { start: startRaw, end: endRaw };
+        }
+      }
+    }
+    // 2. Try flights (assumes itinerary flights already structured)
+    if (
+      Array.isArray(itineraryData?.flights) &&
+      itineraryData!.flights.length
+    ) {
+      const dates = itineraryData!.flights
+        .map((f) => f.date)
+        .filter(Boolean)
+        .sort();
+      if (dates.length) {
+        return { start: dates[0], end: dates[dates.length - 1] };
+      }
+    }
+    // 3. Fallback: derive from locally entered flight segments (not yet regenerated)
+    // (We do not currently collect dates per segment, so nothing to infer here yet.)
+    return {};
+  }, [itineraryData]);
+
+  // Prefill dates form when opened if empty
+  useEffect(() => {
+    if (activeForm === "dates" && !datesForm.start && !datesForm.end) {
+      const inferred = inferDateRange();
+      if (inferred.start || inferred.end) {
+        setDatesForm((prev) => ({ ...prev, ...inferred }));
+        setAnnounce(
+          `Prefilled trip dates ${inferred.start || ""}$${
+            inferred.end ? " to " + inferred.end : ""
+          }`
+        );
+      }
+    }
+  }, [activeForm, datesForm.start, datesForm.end, inferDateRange]);
+
+  // Prefill hotel form check-in/out if opening hotel form and fields blank
+  useEffect(() => {
+    if (activeForm === "hotel" && !hotelForm.checkIn && !hotelForm.checkOut) {
+      const inferred = inferDateRange();
+      if (inferred.start || inferred.end) {
+        setHotelForm((prev) => ({
+          ...prev,
+          checkIn: inferred.start || prev.checkIn,
+          checkOut: inferred.end || prev.checkOut,
+        }));
+        setAnnounce(
+          `Prefilled hotel stay ${inferred.start || ""}$${
+            inferred.end ? " to " + inferred.end : ""
+          }`
+        );
+      }
+    }
+  }, [activeForm, hotelForm.checkIn, hotelForm.checkOut, inferDateRange]);
+
+  // --- Auto-clear dismissed IDs if user deletes that itinerary section ---
+  useEffect(() => {
+    // Determine current presence of core sections
+    const hasFlights = (itineraryData?.flights?.length || 0) > 0;
+    const hasHotel = (itineraryData?.accommodation?.length || 0) > 0;
+    const hasDates = Boolean(itineraryData?.tripHeader?.dates);
+    const hasOutline = (itineraryData?.dailySchedule?.length || 0) > 0;
+    const hasEtiquette = (itineraryData?.helpfulNotes?.length || 0) > 0;
+
+    // Build a list of canonical ids that are currently absent (so suggestions should be eligible again)
+    const resurrect: string[] = [];
+    if (!hasFlights) resurrect.push("add_flights");
+    if (!hasHotel) resurrect.push("add_hotel");
+    if (!hasDates) resurrect.push("set_travel_dates");
+    if (!hasOutline) resurrect.push("draft_daily_outline");
+    if (!hasEtiquette) resurrect.push("add_etiquette_notes");
+
+    if (resurrect.length === 0) return;
+    // If any of these were previously dismissed, remove them from dismissal set
+    setDismissedIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      resurrect.forEach((id) => {
+        if (next.has(id)) {
+          next.delete(id);
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [itineraryData]);
+  // (Canonical mapping now imported from utils – previous inline duplication removed)
+
+  // Migration + load of dismissed ids
   useEffect(() => {
     try {
       const raw = localStorage.getItem(`ts-dismissed-${tripId}`);
       if (raw) {
         const arr: string[] = JSON.parse(raw);
-        if (Array.isArray(arr)) setDismissedIds(new Set(arr));
+        if (Array.isArray(arr)) {
+          const migrated = new Set<string>();
+          arr.forEach((id) => migrated.add(toCanonical(id)));
+          setDismissedIds(migrated);
+        }
       }
     } catch (_) {}
   }, [tripId]);
@@ -84,9 +242,9 @@ export function SuggestionBubblesBar({
   }, [dismissedIds, tripId]);
   const bubbleContainerRef = useRef<HTMLDivElement>(null);
   const bubbleButtonsRef = useRef<HTMLButtonElement[]>([]);
-  const firstFlightFieldRef = useRef<HTMLInputElement>(null);
-  const firstHotelFieldRef = useRef<HTMLInputElement>(null);
-  const firstDatesFieldRef = useRef<HTMLInputElement>(null);
+  const firstFlightFieldRef = useRef<HTMLInputElement>(null as any);
+  const firstHotelFieldRef = useRef<HTMLInputElement>(null as any);
+  const firstDatesFieldRef = useRef<HTMLInputElement>(null as any);
 
   // Fetch base suggestions (deterministic seeds) once
   useEffect(() => {
@@ -117,318 +275,29 @@ export function SuggestionBubblesBar({
   }, [state, tripId, destination, firstTravelDate, daySpan]);
 
   // Contextual heuristics
-  const contextual = useMemo<InternalSuggestion[]>(() => {
-    const list: InternalSuggestion[] = [];
-    const flights = itineraryData?.flights?.length || 0;
-    const hotels = itineraryData?.accommodation?.length || 0;
-    const schedule = itineraryData?.dailySchedule?.length || 0;
-    const notes = itineraryData?.helpfulNotes?.length || 0;
-    const hasHeaderDates = Boolean(itineraryData?.tripHeader?.dates);
+  const contextual = useMemo<InternalSuggestion[]>(
+    () =>
+      buildContextualSuggestions({
+        itineraryData,
+        firstTravelDate,
+        pendingRegen,
+        stalePending,
+      }),
+    [itineraryData, firstTravelDate, pendingRegen, stalePending]
+  );
 
-    if (!hasHeaderDates && !firstTravelDate) {
-      list.push({
-        id: "ctx-dates",
-        type: "logistics",
-        title: "Set travel dates",
-        detail: "Define start & end to anchor itinerary",
-        actionPrompt: "I will provide the trip start and end dates next.",
-        relevanceScore: 0.95,
-        source: "deterministic",
-        createdAt: Date.now(),
-        formKind: "dates",
-        mode: "send",
-      });
-    }
-
-    if (flights === 0)
-      list.push({
-        id: "ctx-flight",
-        type: "logistics",
-        title: "Add flights",
-        detail: "Provide departure & return flight numbers and times",
-        actionPrompt:
-          "I will supply my flight details next. Please be ready to integrate them precisely into the itinerary JSON.",
-        relevanceScore: 0.9,
-        source: "deterministic",
-        createdAt: Date.now(),
-        formKind: "flight",
-        mode: "send",
-      });
-    if (hotels === 0)
-      list.push({
-        id: "ctx-hotel",
-        type: "logistics",
-        title: "Add hotel",
-        detail: "Add hotel name & stay dates to anchor lodging context",
-        actionPrompt:
-          "I will supply my hotel details next. Integrate them only into accommodation section of the itinerary JSON.",
-        relevanceScore: 0.85,
-        source: "deterministic",
-        createdAt: Date.now(),
-        formKind: "hotel",
-        mode: "send",
-      });
-    if (schedule === 0 && (flights > 0 || hotels > 0))
-      list.push({
-        id: "ctx-outline",
-        type: "gap",
-        title: "Draft daily outline",
-        detail: "Generate concise day-by-day schedule scaffold.",
-        actionPrompt:
-          "Please generate a concise day-by-day schedule outline for this trip. Use JSON itinerary format only (do not include prose).",
-        relevanceScore: 0.7,
-        source: "deterministic",
-        createdAt: Date.now(),
-        mode: "send",
-      });
-    if (notes === 0)
-      list.push({
-        id: "ctx-etiquette",
-        type: "etiquette",
-        title: "Local etiquette tips",
-        detail: "Add brief etiquette / business culture notes",
-        actionPrompt:
-          "Add a helpfulNotes section with brief local etiquette and business meeting tips.",
-        relevanceScore: 0.6,
-        source: "deterministic",
-        createdAt: Date.now(),
-        mode: "send",
-      });
-
-    // Regenerate itinerary bubble (shown when itinerary exists OR pending local edits need consolidation)
-    if (
-      (itineraryData && flights + hotels + schedule + notes > 0) ||
-      pendingRegen
-    ) {
-      list.push({
-        id: "ctx-regen",
-        type: "logistics",
-        title: pendingRegen
-          ? "Regenerate itinerary (apply edits)"
-          : "Regenerate itinerary",
-        detail: pendingRegen
-          ? "Create updated full JSON with recent edits"
-          : "Refresh full structured plan",
-        actionPrompt:
-          "Please return the full updated itinerary as a single JSON code block (type: complete_itinerary) with all sections preserved. Respond with ONLY the JSON.",
-        relevanceScore: 0.99,
-        source: "deterministic",
-        createdAt: Date.now(),
-        mode: "send",
-      });
-    }
-    return list;
-  }, [itineraryData, pendingRegen]);
-
-  // Merge & announce (hash diff + debounce to reduce a11y noise)
-  const prevHashRef = useRef<string>("");
-  const announceTimerRef = useRef<number | null>(null);
-  useEffect(() => {
-    // Base merge
-    let base: InternalSuggestion[] = [];
-    const seenByTitle = new Set<string>();
-    const push = (s: InternalSuggestion) => {
-      if (!seenByTitle.has(s.title)) {
-        seenByTitle.add(s.title);
-        base.push(s);
-      }
-    };
-    contextual.forEach((s) => {
-      // Force hide if previously dismissed OR if logically obsolete (e.g., hotel just supplied via prefill and pending regen)
-      if (dismissedIds.has(s.id)) return;
-      if (
-        pendingRegen &&
-        (s.id === "ctx-hotel" || s.id === "ctx-flight" || s.id === "ctx-dates")
-      ) {
-        // User provided data but hasn't regenerated; don't nag.
-        return;
-      }
-      push(s);
-    });
-    apiSuggestions.forEach((s) => {
-      // Suppression rules for aggregated deterministic suggestions
-      if (s.source === "deterministic") {
-        const lowerTitle = s.title.toLowerCase();
-        const notesText = (itineraryData?.helpfulNotes || [])
-          .map((n: any) =>
-            `${n.category} ${n.information} ${n.tips || ""}`.toLowerCase()
-          )
-          .join(" ");
-        const hasCoreScaffold =
-          Boolean(itineraryData?.tripHeader?.dates) &&
-          ((itineraryData?.flights && itineraryData.flights.length > 0) ||
-            (itineraryData?.accommodation &&
-              itineraryData.accommodation.length > 0));
-        // Delay seasonal / etiquette / transit until some scaffold exists or user has pending regen (meaning they've begun supplying data)
-        if (
-          !hasCoreScaffold &&
-          !pendingRegen &&
-          (lowerTitle.includes("seasonal timing") ||
-            lowerTitle.includes("local etiquette") ||
-            lowerTitle.includes("transit pass"))
-        ) {
-          return; // suppress early noise
-        }
-        // Suppress if already covered in helpfulNotes heuristically
-        if (notesText) {
-          if (
-            lowerTitle.includes("etiquette") &&
-            /etiquette|culture|meeting/i.test(notesText)
-          )
-            return;
-          if (
-            lowerTitle.includes("seasonal") &&
-            /season|weather|climate/i.test(notesText)
-          )
-            return;
-          if (
-            lowerTitle.includes("transit") &&
-            /transport|transit|metro|pass|card/i.test(notesText)
-          )
-            return;
-        }
-      }
-      push({ ...s, mode: "send" });
-    });
-
-    // Apply AI directives if present
-    if (aiDirectives?.suggestions?.length) {
-      const actionsById = new Map(
-        aiDirectives.suggestions.map((d) => [d.id, d.actions])
-      );
-      // Map known heuristic ids -> canonical ids used by AI
-      const idResolver = (
-        suggestion: InternalSuggestion
-      ): string | undefined => {
-        switch (suggestion.id) {
-          case "ctx-dates":
-            return "set_travel_dates";
-          case "ctx-flight":
-            return "add_flights";
-          case "ctx-hotel":
-            return "add_hotel";
-          case "ctx-outline":
-            return "draft_daily_outline";
-          case "ctx-etiquette":
-            return "add_etiquette_notes";
-          default:
-            return undefined;
-        }
-      };
-
-      // First pass: filter & transform existing
-      base = base
-        .map((s) => {
-          const canonical = idResolver(s);
-          if (!canonical) return s;
-          const actions = actionsById.get(canonical);
-          if (!actions) return s;
-          if (actions.includes("hide")) return { ...s, _hidden: true } as any;
-          let mode: InternalSuggestion["mode"] | undefined = s.mode;
-          if (actions.includes("prefillMode")) mode = "prefill";
-          if (actions.includes("sendMode")) mode = "send";
-          return {
-            ...s,
-            mode,
-            _highlight: actions.includes("highlight"),
-          } as any;
-        })
-        .filter((s: any) => !s._hidden);
-
-      // Order hints (bring hinted ids to front in order)
-      if (aiDirectives.orderingHints?.length) {
-        const order = aiDirectives.orderingHints;
-        const ranked: InternalSuggestion[] = [];
-        const rest: InternalSuggestion[] = [];
-        base.forEach((s) => {
-          const cid = idResolver(s);
-          const idx = cid ? order.indexOf(cid) : -1;
-          if (idx >= 0) {
-            // Insert respecting order array sequence
-            ranked[idx] = ranked[idx] || s;
-          } else rest.push(s);
-        });
-        base = ranked.filter(Boolean).concat(rest);
-      }
-
-      // Add any directive referencing IDs we do not currently show but are told to show
-      aiDirectives.suggestions.forEach((d) => {
-        if (!d.actions.includes("show")) return;
-        const already = base.some((s) => {
-          const cid = idResolver(s);
-          return cid === d.id;
-        });
-        if (already) return;
-        const meta: Record<
-          string,
-          {
-            title: string;
-            detail: string;
-            action: string;
-            type?: InternalSuggestion["type"];
-          }
-        > = {
-          set_travel_dates: {
-            title: "Set travel dates",
-            detail: "Add start & end dates to anchor scheduling logic",
-            action:
-              "I will provide trip start and end dates; integrate them into the header only (do not regenerate full itinerary yet).",
-          },
-          add_flights: {
-            title: "Add flights",
-            detail: "Capture departure & return flights for timing context",
-            action:
-              "I will supply flight numbers and local departure/arrival times next; be ready to merge into flights array only.",
-          },
-          add_hotel: {
-            title: "Add hotel",
-            detail: "Provide lodging details to anchor overnight blocks",
-            action:
-              "I will give hotel name and stay dates; integrate only into accommodation (no full regeneration).",
-          },
-          draft_daily_outline: {
-            title: "Draft daily outline",
-            detail: "Generate a concise day-by-day scaffold",
-            action:
-              "Please produce a minimal dailySchedule outline (no full itinerary rewrite) based on current context.",
-          },
-          add_etiquette_notes: {
-            title: "Local etiquette tips",
-            detail: "Insert short cultural & business interaction notes",
-            action:
-              "Add a helpfulNotes entry summarizing key etiquette / business culture tips succinctly.",
-          },
-        };
-        const entry = meta[d.id];
-        if (!entry) return;
-        base.unshift({
-          id: `ai-${d.id}`,
-          type: entry.type || "other",
-          title: entry.title,
-          detail: entry.detail,
-          actionPrompt: entry.action,
-          relevanceScore: 0.55,
-          source: "ai",
-          createdAt: Date.now(),
-          mode: d.actions.includes("prefillMode") ? "prefill" : "send",
-        });
-      });
-    }
-
-    setSuggestions(base);
-    const hash = base
-      .map((m: any) => m.id + (m.mode || "") + (m._highlight ? "*" : ""))
-      .join("|");
-    if (hash !== prevHashRef.current) {
-      prevHashRef.current = hash;
-      if (announceTimerRef.current)
-        window.clearTimeout(announceTimerRef.current);
-      announceTimerRef.current = window.setTimeout(
-        () => setAnnounce("Suggestions updated"),
-        300
-      );
-    }
-  }, [contextual, apiSuggestions, aiDirectives, dismissedIds]);
+  // Suggestions produced by engine hook
+  // Invoke suggestion engine (centralized orchestration logic)
+  const suggestions = useSuggestionEngine({
+    contextual,
+    apiSuggestions,
+    aiDirectives,
+    dismissedIds,
+    pendingRegen,
+    stagedEdits,
+    itineraryData,
+    onAnnounce: (msg) => setAnnounce(msg),
+  });
 
   const lastTriggerRef = useRef<HTMLButtonElement | null>(null);
   const handleBubbleClick = (
@@ -437,7 +306,28 @@ export function SuggestionBubblesBar({
   ) => {
     if (el) lastTriggerRef.current = el;
     if (s.formKind === "flight") {
-      setActiveForm(activeForm === "flight" ? null : "flight");
+      if (activeForm === "flight") {
+        setActiveForm(null);
+      } else {
+        setFlightSegments((segs) => {
+          const hasOut = segs.some((g) => g.direction === "outbound");
+          const hasIn = segs.some((g) => g.direction === "inbound");
+          if (hasOut && hasIn && segs.length > 0) return segs;
+          const next = [...segs];
+          if (!hasOut)
+            next.unshift({
+              id: Math.random().toString(36).slice(2),
+              direction: "outbound",
+            });
+          if (!hasIn)
+            next.push({
+              id: Math.random().toString(36).slice(2),
+              direction: "inbound",
+            });
+          return next;
+        });
+        setActiveForm("flight");
+      }
       return;
     }
     if (s.formKind === "hotel") {
@@ -448,17 +338,28 @@ export function SuggestionBubblesBar({
       setActiveForm(activeForm === "dates" ? null : "dates");
       return;
     }
+    const canonical = toCanonical(s.id);
     if (s.mode === "prefill" && onPrefillPrompt) {
       onPrefillPrompt(s.actionPrompt);
-      // Optimistically dismiss contextual suggestions (except regen) once used
-      if (s.id.startsWith("ctx-") && s.id !== "ctx-regen") {
-        setDismissedIds((prev) => new Set(prev).add(s.id));
+      if (
+        canonical &&
+        !canonical.startsWith("ctx-") &&
+        !canonical.startsWith("ai-") &&
+        canonical !== "ctx-regen"
+      ) {
+        setDismissedIds((prev) => new Set(prev).add(canonical));
+      } else if (canonical) {
+        setDismissedIds((prev) => new Set(prev).add(canonical));
       }
       return;
     }
     onApplyPrompt(s.actionPrompt);
-    if (s.id.startsWith("ctx-") && s.id !== "ctx-regen") {
-      setDismissedIds((prev) => new Set(prev).add(s.id));
+    if (canonical && canonical !== "ctx-regen") {
+      setDismissedIds((prev) => new Set(prev).add(canonical));
+    }
+    if (s.id === "ctx-regen" || s.id === "ctx-regen-reminder") {
+      // After regeneration request, clear pendingRegen so reminder logic resets.
+      setPendingRegen(false);
     }
   };
 
@@ -484,29 +385,45 @@ export function SuggestionBubblesBar({
   }, [activeForm]);
 
   const submitFlightForm = () => {
-    if (!flightForm.departureFlight && !flightForm.returnFlight) {
+    const meaningful = flightSegments.filter((s) => s.flightNumber?.trim());
+    if (meaningful.length === 0) {
       setActiveForm(null);
       return;
     }
-    const prompt = `Flight details to integrate (no full JSON yet):\n${
-      flightForm.departureFlight
-        ? `Departure flight: ${flightForm.departureFlight} ${
-            flightForm.departureTime || ""
-          }`
-        : ""
-    }\n${
-      flightForm.returnFlight
-        ? `Return flight: ${flightForm.returnFlight} ${
-            flightForm.returnTime || ""
-          }`
-        : ""
-    }`.trim();
+    // Canonical pipe-delimited format to reduce hallucination and make parsing deterministic.
+    // Format per line (no surrounding JSON):
+    // DIRECTION_INDEX | YYYY-MM-DD | FLIGHT_NUMBER | FROM->TO | DEP HH:MM | ARR HH:MM[+DAY_OFFSET]
+    // Example: Outbound 1 | 2025-03-15 | KL861 | AMS->NRT | Dep 08:00 | Arr 15:30+1
+    let outboundIdx = 0;
+    let inboundIdx = 0;
+    const lines = meaningful.map((seg) => {
+      const idx = seg.direction === "outbound" ? ++outboundIdx : ++inboundIdx;
+      const directionLabel =
+        seg.direction === "outbound" ? "Outbound" : "Inbound";
+      // Date not currently collected; placeholder kept empty for future expansion.
+      const date = "";
+      const flightNumber = (seg.flightNumber || "").trim();
+      const route = (seg.route || "").replace(/\s+/g, "");
+      const dep = seg.depTime ? `Dep ${seg.depTime}` : "";
+      const arr = seg.arrTime ? `Arr ${seg.arrTime}` : "";
+      // We do not attempt to calculate +day offset automatically here; user can append +1 manually if overnight.
+      return [`${directionLabel} ${idx}`, date, flightNumber, route, dep, arr]
+        .filter(Boolean)
+        .join(" | ");
+    });
+    const guidance = `Each line above becomes ONE Flight object in order; do NOT merge or summarize. Only integrate into the flights array (no full itinerary JSON until user explicitly regenerates).`;
+    const prompt = `Flight details to integrate (no full JSON yet). These may include connecting legs; preserve ordering exactly.\n${lines.join(
+      "\n"
+    )}\n${guidance}`;
     if (onPrefillPrompt) onPrefillPrompt(prompt);
     setPendingRegen(true);
-    // Optimistically hide flight suggestion bubble
-    setDismissedIds((prev) => new Set(prev).add("ctx-flight"));
+    setStagedEdits((s) => ({ ...s, flights: true }));
+    setDismissedIds((prev) => new Set(prev).add("add_flights"));
     setActiveForm(null);
-    setFlightForm({});
+    setFlightSegments([
+      { id: Math.random().toString(36).slice(2), direction: "outbound" },
+      { id: Math.random().toString(36).slice(2), direction: "inbound" },
+    ]);
   };
 
   const submitHotelForm = () => {
@@ -521,10 +438,27 @@ export function SuggestionBubblesBar({
     }`.trim();
     if (onPrefillPrompt) onPrefillPrompt(prompt);
     setPendingRegen(true);
-    setDismissedIds((prev) => new Set(prev).add("ctx-hotel"));
+    setStagedEdits((s) => ({ ...s, hotel: true }));
+    setDismissedIds((prev) => new Set(prev).add("add_hotel"));
     setActiveForm(null);
     setHotelForm({});
   };
+
+  // Auto-correct reversed hotel range while typing
+  useEffect(() => {
+    if (hotelForm.checkIn && hotelForm.checkOut) {
+      const inDate = new Date(hotelForm.checkIn);
+      const outDate = new Date(hotelForm.checkOut);
+      if (outDate < inDate) {
+        setHotelForm((f) => ({
+          checkIn: f.checkOut,
+          checkOut: f.checkIn,
+          hotelName: f.hotelName,
+        }));
+        setAnnounce("Swapped check-in and check-out to fix reversed stay");
+      }
+    }
+  }, [hotelForm.checkIn, hotelForm.checkOut]);
 
   const submitDatesForm = () => {
     if (!datesForm.start && !datesForm.end) {
@@ -551,7 +485,8 @@ export function SuggestionBubblesBar({
       : `Set trip dates: ${start} – ${end} spanning ${spanDays} days. (Will request full itinerary later.)`;
     if (onPrefillPrompt) onPrefillPrompt(prompt);
     setPendingRegen(true);
-    setDismissedIds((prev) => new Set(prev).add("ctx-dates"));
+    setStagedEdits((s) => ({ ...s, dates: true }));
+    setDismissedIds((prev) => new Set(prev).add("set_travel_dates"));
     setActiveForm(null);
     setDatesForm({});
     setDatesError("");
@@ -560,8 +495,13 @@ export function SuggestionBubblesBar({
   // Validate dates as user types
   useEffect(() => {
     if (datesForm.start && datesForm.end) {
-      if (new Date(datesForm.end) < new Date(datesForm.start)) {
-        setDatesError("End date must be after start date");
+      const startDate = new Date(datesForm.start);
+      const endDate = new Date(datesForm.end);
+      if (endDate < startDate) {
+        // Auto-swap to correct obvious reversal while preserving user intent
+        setDatesForm((f) => ({ start: f.end, end: f.start }));
+        setAnnounce("Swapped start and end dates to fix reversed range");
+        setDatesError("");
       } else {
         setDatesError("");
       }
@@ -659,285 +599,63 @@ export function SuggestionBubblesBar({
             ))}
         </div>
         {activeForm === "flight" && (
-          <div
-            className="mt-3 p-4 rounded-xl bg-black/40 border border-white/15 backdrop-blur-xl space-y-3 relative z-30"
-            aria-label="Flight details form"
-            role="group"
-            aria-describedby="flight-form-desc"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setActiveForm(null);
-              }
+          <FlightSegmentsForm
+            segments={flightSegments as any}
+            onChange={setFlightSegments as any}
+            onSubmit={submitFlightForm}
+            onCancel={() => {
+              setActiveForm(null);
+              setFlightSegments([
+                {
+                  id: Math.random().toString(36).slice(2),
+                  direction: "outbound",
+                },
+                {
+                  id: Math.random().toString(36).slice(2),
+                  direction: "inbound",
+                },
+              ]);
             }}
-          >
-            <div className="flex items-center justify-between">
-              <h5 className="text-[12px] font-semibold text-white/80">
-                Add Flight Details
-              </h5>
-              <button
-                onClick={() => setActiveForm(null)}
-                className="text-[11px] text-white/50 hover:text-white/80"
-                aria-label="Close flight details form"
-              >
-                Close
-              </button>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-[11px] uppercase tracking-wide text-white/40">
-                  Departure Flight
-                </label>
-                <input
-                  ref={firstFlightFieldRef}
-                  value={flightForm.departureFlight || ""}
-                  onChange={(e) =>
-                    setFlightForm((f) => ({
-                      ...f,
-                      departureFlight: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g. KL 861 AMS→NRT"
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <input
-                  value={flightForm.departureTime || ""}
-                  onChange={(e) =>
-                    setFlightForm((f) => ({
-                      ...f,
-                      departureTime: e.target.value,
-                    }))
-                  }
-                  placeholder="Dep time (local)"
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] uppercase tracking-wide text-white/40">
-                  Return Flight
-                </label>
-                <input
-                  value={flightForm.returnFlight || ""}
-                  onChange={(e) =>
-                    setFlightForm((f) => ({
-                      ...f,
-                      returnFlight: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g. KL 862 NRT→AMS"
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-                <input
-                  value={flightForm.returnTime || ""}
-                  onChange={(e) =>
-                    setFlightForm((f) => ({ ...f, returnTime: e.target.value }))
-                  }
-                  placeholder="Return time (local)"
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                onClick={() => {
-                  setActiveForm(null);
-                  setFlightForm({});
-                }}
-                className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitFlightForm}
-                className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 border border-purple-400/40 text-white font-medium"
-              >
-                Apply Flights
-              </button>
-            </div>
-            <p id="flight-form-desc" className="sr-only">
-              Enter one or both flight numbers and optional local departure /
-              return times.
-            </p>
-          </div>
+            onClose={() => setActiveForm(null)}
+            firstFieldRef={firstFlightFieldRef}
+            addOutboundBtnRef={addOutboundBtnRef}
+            addInboundBtnRef={addInboundBtnRef}
+            ariaMessage={flightAriaMessage}
+            setAriaMessage={setFlightAriaMessage}
+            setActiveForm={setActiveForm as any}
+          />
         )}
         {activeForm === "hotel" && (
-          <div
-            className="mt-3 p-4 rounded-xl bg-black/40 border border-white/15 backdrop-blur-xl space-y-3 relative z-30"
-            aria-label="Hotel details form"
-            role="group"
-            aria-describedby="hotel-form-desc"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setActiveForm(null);
-              }
+          <HotelDetailsForm
+            value={hotelForm}
+            onChange={setHotelForm}
+            onSubmit={submitHotelForm}
+            onCancel={() => {
+              setActiveForm(null);
+              setHotelForm({});
             }}
-          >
-            <div className="flex items-center justify-between">
-              <h5 className="text-[12px] font-semibold text-white/80">
-                Add Hotel Details
-              </h5>
-              <button
-                onClick={() => setActiveForm(null)}
-                className="text-[11px] text-white/50 hover:text-white/80"
-                aria-label="Close hotel details form"
-              >
-                Close
-              </button>
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="space-y-1 md:col-span-1">
-                <label className="text-[11px] uppercase tracking-wide text-white/40">
-                  Hotel Name
-                </label>
-                <input
-                  ref={firstHotelFieldRef}
-                  value={hotelForm.hotelName || ""}
-                  onChange={(e) =>
-                    setHotelForm((f) => ({ ...f, hotelName: e.target.value }))
-                  }
-                  placeholder="e.g. Park Hyatt"
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] uppercase tracking-wide text-white/40">
-                  Check-in
-                </label>
-                <input
-                  type="date"
-                  value={hotelForm.checkIn || ""}
-                  onChange={(e) =>
-                    setHotelForm((f) => ({ ...f, checkIn: e.target.value }))
-                  }
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] uppercase tracking-wide text-white/40">
-                  Check-out
-                </label>
-                <input
-                  type="date"
-                  value={hotelForm.checkOut || ""}
-                  onChange={(e) =>
-                    setHotelForm((f) => ({ ...f, checkOut: e.target.value }))
-                  }
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                onClick={() => {
-                  setActiveForm(null);
-                  setHotelForm({});
-                }}
-                className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitHotelForm}
-                className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 border border-purple-400/40 text-white font-medium"
-              >
-                Apply Hotel
-              </button>
-            </div>
-            <p id="hotel-form-desc" className="sr-only">
-              Provide hotel name and optional check-in / check-out dates.
-            </p>
-          </div>
+            onClose={() => setActiveForm(null)}
+            firstFieldRef={firstHotelFieldRef}
+            active={activeForm === "hotel"}
+            inferDates={() => inferDateRange()}
+            announce={(msg) => setAnnounce(msg)}
+          />
         )}
         {activeForm === "dates" && (
-          <div
-            className="mt-3 p-4 rounded-xl bg-black/40 border border-white/15 backdrop-blur-xl space-y-3 relative z-30"
-            aria-label="Travel dates form"
-            role="group"
-            aria-describedby="dates-form-desc"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setActiveForm(null);
-              }
+          <TravelDatesForm
+            value={datesForm}
+            onChange={setDatesForm}
+            onSubmit={submitDatesForm}
+            onCancel={() => {
+              setActiveForm(null);
+              setDatesForm({});
             }}
-          >
-            <div className="flex items-center justify-between">
-              <h5 className="text-[12px] font-semibold text-white/80">
-                Set Travel Dates
-              </h5>
-              <button
-                onClick={() => setActiveForm(null)}
-                className="text-[11px] text-white/50 hover:text-white/80"
-                aria-label="Close travel dates form"
-              >
-                Close
-              </button>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-[11px] uppercase tracking-wide text-white/40">
-                  Start Date
-                </label>
-                <input
-                  ref={firstDatesFieldRef}
-                  type="date"
-                  value={datesForm.start || ""}
-                  onChange={(e) =>
-                    setDatesForm((f) => ({ ...f, start: e.target.value }))
-                  }
-                  aria-invalid={!!datesError}
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] uppercase tracking-wide text-white/40">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={datesForm.end || ""}
-                  onChange={(e) =>
-                    setDatesForm((f) => ({ ...f, end: e.target.value }))
-                  }
-                  aria-invalid={!!datesError}
-                  className="w-full text-[12px] bg-white/5 border border-white/15 rounded-md px-2 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                onClick={() => {
-                  setActiveForm(null);
-                  setDatesForm({});
-                }}
-                className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitDatesForm}
-                disabled={!!datesError}
-                className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 disabled:bg-purple-600/40 disabled:cursor-not-allowed border border-purple-400/40 text-white font-medium"
-              >
-                Apply Dates
-              </button>
-            </div>
-            <p id="dates-form-desc" className="sr-only">
-              Provide start and end date to populate the itinerary header and
-              adjust schedule length.
-            </p>
-            {datesError && (
-              <p className="text-[11px] text-red-300" role="alert">
-                {datesError}
-              </p>
-            )}
-            {inferredDaySpan && (
-              <p className="text-[11px] text-white/40">
-                Span: {inferredDaySpan} day{inferredDaySpan !== 1 ? "s" : ""}
-              </p>
-            )}
-          </div>
+            onClose={() => setActiveForm(null)}
+            firstFieldRef={firstDatesFieldRef}
+            error={datesError}
+            inferredDaySpan={inferredDaySpan}
+            setActiveForm={setActiveForm as any}
+          />
         )}
       </div>
     </div>

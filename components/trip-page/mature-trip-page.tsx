@@ -93,12 +93,18 @@ export function MatureTripPage({
       setMessages((prev) => [...prev, assistantMessageObj]);
 
       // Handle streaming with utility
+      // Detect explicit regenerate intent in the user message
+      const regenerateIntentRegex =
+        /(regenerate itinerary|full updated itinerary|return the full itinerary|complete itinerary now|full itinerary json)/i;
+      const expectFull = regenerateIntentRegex.test(userMessage.content);
+
       const {
         content: finalContent,
         itineraryData,
         uiDirectives,
       } = await handleStreamingResponse(response, assistantMessageObj.id, {
         handleItineraryGeneration: true,
+        expectFullItinerary: expectFull,
         onMessageUpdate: (messageId, content) => {
           setMessages((prev) =>
             prev.map((msg) =>

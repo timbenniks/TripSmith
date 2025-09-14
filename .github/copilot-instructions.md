@@ -85,6 +85,9 @@ Implemented multi-layer suggestion & regeneration system:
 - Bubble dismissal & per-trip persistence via `localStorage` (`ts-dismissed-<tripId>`)
 - Suppression heuristics avoid noisy early suggestions & duplicate themes already in `helpfulNotes`
 - Enriched AI placeholder suggestions with actionable prompts
+- Extracted inline logistics capture into dedicated form components (`flight-segments-form.tsx`, `hotel-details-form.tsx`, `travel-dates-form.tsx`) for a11y and maintainability
+- Centralized complex merge/suppression/directive logic inside `useSuggestionEngine` hook (`lib/suggestions-utils.ts`) eliminating previous large effect block duplication
+- Stability fix: prevented infinite re-render ("Maximum update depth exceeded") via callback ref stabilization + hash-gated state updates inside the hook
 
 Result: Lean, high-signal assistance enabling structured itinerary enrichment without unwanted full rewrites.
 
@@ -309,6 +312,28 @@ The codebase features a comprehensive shared utility architecture that eliminate
 
 **Used by**: mature-trip-page.tsx (chat-interface.tsx integration pending)
 
+#### **lib/suggestions-utils.ts** (≈420 lines)
+
+**Purpose**: Centralizes Smart Suggestions Engine pure logic + `useSuggestionEngine` hook.
+
+**Key Exports**:
+
+- `toCanonical(id)` – normalizes legacy / AI / contextual suggestion IDs
+- `buildContextualSuggestions(params)` – deterministic on-the-fly heuristics (dates / flights / hotel / outline / etiquette / regen / stale reminder)
+- `useSuggestionEngine({...})` – merges contextual + server + AI directive suggestions, applies suppression (dismissals, staged edits during `pendingRegen`, early-noise filters), dedupes with highlight precedence, debounces polite live-region announcements, and prevents render loops via hash gating
+- `InternalSuggestion` – enriched suggestion type (modes, formKind, internal flags)
+
+**Why a Hook?** Encapsulates previously sprawling in-component `useEffect` logic from `suggestion-bubbles-bar.tsx`, improving testability and reducing accidental feedback loops.
+
+#### **components/suggestions/**
+
+- `flight-segments-form.tsx` – Multi-leg outbound/inbound capture (pipe-delimited deterministic prompt format)
+- `hotel-details-form.tsx` – Hotel + stay dates with reversed range auto-swap
+- `travel-dates-form.tsx` – Trip date range with live span calculation & auto-correction
+- `README.md` – Module principles + engine integration summary
+
+These forms are presentational/controlled; no regeneration side-effects inside them.
+
 ### **Architecture Benefits**
 
 - **Zero Duplication**: Eliminated all duplicate functions across chat components
@@ -328,6 +353,12 @@ app/
 │   ├── page.tsx             # Trip history dashboard
 │   └── [tripId]/page.tsx    # Individual trip pages with clean URLs
 components/
+├── suggestion-bubbles-bar.tsx   # Orchestrates suggestion UI using useSuggestionEngine
+├── suggestions/                # Extracted logistics forms + README
+│   ├── flight-segments-form.tsx
+│   ├── hotel-details-form.tsx
+│   ├── travel-dates-form.tsx
+│   └── README.md
 ├── chat-interface.tsx       # Main orchestrator component with auto-redirect (candidate for fuller streaming-utils adoption) (563 lines)
 ├── earth-visualization.tsx  # Three.js wrapper with SSR safety
 ├── message-bubble.tsx       # Simplified markdown renderer (104 lines - 61% reduction)
@@ -345,6 +376,7 @@ components/
 │   ├── button.tsx          # Base button with cursor-pointer
 │   └── loading-spinner.tsx # Consistent loading states
 lib/
+├── suggestions-utils.ts  # Smart Suggestions Engine (canonical mapping, heuristics, hook)
 ├── itinerary-utils.ts      # Unified JSON extraction logic (58 lines)
 ├── markdown-components.tsx # Reusable ReactMarkdown config (96 lines)
 ├── streaming-utils.ts      # Chat streaming handlers (138 lines)
@@ -356,6 +388,7 @@ lib/
 
 - **message-bubble.tsx**: 273 → 104 lines (61% reduction)
 - **mature-trip-page.tsx**: 320 → 273 lines (15% reduction)
+- **suggestion-bubbles-bar.tsx**: Monolithic logic split; merge/suppression effect removed in favor of `useSuggestionEngine`; forms extracted (net reduction of ~40% in orchestration complexity even if file still large due to UI code)
 - **Total shared utilities**: 3 core + chat-utils (after deprecations)
 - **Zero code duplication** across chat components
 
@@ -620,6 +653,7 @@ We recently completed a comprehensive code refactoring that significantly improv
 - ✅ Improved maintainability (modular utilities & aggregated server suggestion generation)
 - ✅ Performance gains: removed legacy table/PDF layers & animation overhead
 - ✅ Runtime stability via deterministic suppression & explicit regeneration gating
+- ✅ Infinite render loop eliminated in suggestions engine via callback ref + hash gating
 - ✅ Future-ready for ranking, personalization, weather & budget modules
 
 The codebase is now significantly more maintainable and provides a solid foundation for implementing Feature 3 and beyond.

@@ -16,6 +16,8 @@ export interface Message {
 export interface StreamingOptions {
   /** Whether to handle JSON itinerary generation with loading states */
   handleItineraryGeneration?: boolean;
+  /** Whether the caller explicitly expects a full itinerary JSON (regenerate intent). If false, any complete_itinerary JSON will be ignored as plain text. */
+  expectFullItinerary?: boolean;
   /** Callback when message content is updated during streaming */
   onMessageUpdate?: (messageId: string, content: string, isGeneratingItinerary?: boolean) => void;
   /** Callback when streaming is complete */
@@ -33,6 +35,7 @@ export async function handleStreamingResponse(
 ): Promise<{ content: string; itineraryData?: any; uiDirectives?: UiDirectivesPayload }> {
   const {
     handleItineraryGeneration = false,
+    expectFullItinerary = false,
     onMessageUpdate,
     onStreamComplete
   } = options;
@@ -87,8 +90,14 @@ export async function handleStreamingResponse(
   if (handleItineraryGeneration) {
     const itineraryResult = extractItineraryData(assistantMessage);
     if (itineraryResult.hasItinerary) {
-      finalContent = itineraryResult.displayContent;
-      itineraryData = itineraryResult.itineraryData;
+      if (expectFullItinerary) {
+        finalContent = itineraryResult.displayContent;
+        itineraryData = itineraryResult.itineraryData;
+      } else {
+        // We detected a full itinerary but were not expecting it (unsolicited). Treat as normal text.
+        // Strip fenced block entirely to avoid accidental rendering of large JSON.
+        finalContent = assistantMessage.replace(/```json[\s\S]*?```/g, '').trim() || assistantMessage;
+      }
     }
   }
 
