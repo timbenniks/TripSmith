@@ -81,8 +81,104 @@ export function buildGoogleMapsSearchUrl(params: MapsSearchParams): string {
   return `${base}/search/${encodeURIComponent(q)}`;
 }
 
-// Placeholder for future expansion (hotel & transit links)
-// export function buildHotelSearchUrl(city: string, checkIn: string, checkOut: string) { ... }
+// ---------------- Hotel Search Link (F2-BE-3) ----------------
+interface HotelSearchParams {
+  property?: string;      // Hotel name or property label
+  cityOrAddress?: string; // City name or full address string
+  checkIn?: string;       // ISO date yyyy-mm-dd
+  checkOut?: string;      // ISO date yyyy-mm-dd
+  guests?: number;        // optional hint
+  rooms?: number;         // optional hint
+}
+
+/**
+ * Builds a Google Hotels deep link using the public travel surface.
+ * Pattern:
+ * https://www.google.com/travel/hotels?q=<query>&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD
+ * Falls back gracefully when fields are missing.
+ */
+export function buildHotelSearchUrl(params: HotelSearchParams): string {
+  const base = 'https://www.google.com/travel/hotels';
+  const parts: string[] = [];
+  const property = (params.property || '').trim();
+  const cityOrAddress = (params.cityOrAddress || '').trim();
+  if (property) parts.push(property);
+  if (cityOrAddress) parts.push(cityOrAddress);
+  const q = parts.join(' ').trim();
+
+  const checkIn = params.checkIn ? normalizeDate(params.checkIn) : null;
+  const checkOut = params.checkOut ? normalizeDate(params.checkOut) : null;
+
+  const search = new URLSearchParams();
+  if (q) search.set('q', q);
+  if (checkIn) search.set('checkin', checkIn);
+  if (checkOut) search.set('checkout', checkOut);
+
+  // We intentionally avoid adding guests/rooms unless both are sane positive integers
+  const guests = params.guests && params.guests > 0 ? params.guests : null;
+  const rooms = params.rooms && params.rooms > 0 ? params.rooms : null;
+  if (guests && rooms) {
+    // Encode as free-text hint to keep URL stable
+    const hint = `${guests} guests ${rooms} rooms`;
+    const existing = search.get('q');
+    search.set('q', existing ? `${existing} ${hint}` : hint);
+  }
+
+  const qs = search.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+// ---------------- Transit Directions (F2-BE-4) ----------------
+type TravelMode = 'transit' | 'walking' | 'driving' | 'bicycling';
+
+interface TransitDirectionsParams {
+  originQuery?: string;         // Free-text origin (hotel name, address)
+  originLat?: number;           // Optional coordinates
+  originLng?: number;           // Optional coordinates
+  destinationQuery?: string;    // Free-text destination
+  destinationLat?: number;      // Optional coordinates
+  destinationLng?: number;      // Optional coordinates
+  mode?: TravelMode;            // Defaults to 'transit'
+}
+
+/**
+ * Builds a Google Maps directions deep link.
+ * Public format (API=1):
+ * https://www.google.com/maps/dir/?api=1&origin=...&destination=...&travelmode=transit
+ */
+export function buildTransitDirectionsUrl(params: TransitDirectionsParams): string {
+  const base = 'https://www.google.com/maps/dir/?api=1';
+
+  const origin = ((): string | null => {
+    if (isFiniteNumber(params.originLat) && isFiniteNumber(params.originLng)) {
+      return `${params.originLat},${params.originLng}`;
+    }
+    const q = (params.originQuery || '').trim();
+    return q ? q : null;
+  })();
+
+  const destination = ((): string | null => {
+    if (isFiniteNumber(params.destinationLat) && isFiniteNumber(params.destinationLng)) {
+      return `${params.destinationLat},${params.destinationLng}`;
+    }
+    const q = (params.destinationQuery || '').trim();
+    return q ? q : null;
+  })();
+
+  if (!origin || !destination) return 'https://www.google.com/maps';
+
+  const allowed: TravelMode[] = ['transit', 'walking', 'driving', 'bicycling'];
+  const travelmode: TravelMode = allowed.includes(params.mode || 'transit')
+    ? (params.mode as TravelMode)
+    : 'transit';
+
+  const search = new URLSearchParams();
+  search.set('origin', origin);
+  search.set('destination', destination);
+  search.set('travelmode', travelmode);
+
+  return `${base}&${search.toString()}`;
+}
 
 // Simple self-contained smoke test (can be removed when Vitest harness lands)
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -92,3 +188,5 @@ if (process.env.NODE_ENV === 'test_flights_smoke') {
 }
 
 export type { FlightLinkParams, MapsSearchParams };
+export type { HotelSearchParams };
+export type { TransitDirectionsParams, TravelMode };

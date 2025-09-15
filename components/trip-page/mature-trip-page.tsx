@@ -220,17 +220,6 @@ export function MatureTripPage({
     }
   };
 
-  const handleDownloadPDF = async () => {
-    if (!currentItinerary) {
-      alert("No itinerary available to download.");
-      return;
-    }
-
-    // TODO: Implement PDF generation from itinerary data
-    console.log("PDF download not yet implemented");
-    alert("PDF download feature coming soon!");
-  };
-
   const handleShare = () => {
     // Open the share dialog in "pre-create" mode so user can set expiry first
     setShareUrl(null);
@@ -306,7 +295,6 @@ export function MatureTripPage({
               }
             }}
             onDelete={() => setShowDeleteDialog(true)}
-            onDownloadPDF={handleDownloadPDF}
             onShare={handleShare}
             onBackToTrips={() => router.push("/trips")}
           />

@@ -47,6 +47,28 @@ TripSmith is an AI-powered travel planning application that combines:
 
 ## 🚀 Current Status
 
+### **Phase Complete: F3X Export Layer (PDF + ICS)**
+
+**Production-Ready Export System Delivered:**
+
+- ✅ **Server-Side API Routes**: `/api/trips/[tripId]/export/pdf` and `/api/trips/[tripId]/export/ics`
+- ✅ **Export Normalizer**: Pure utility (`lib/export-normalizer.ts`) converts itinerary JSON to exportable events
+- ✅ **PDF Generation**: Uses `pdf-lib` with Unicode sanitization for special characters (→ arrows, em-dashes, etc.)
+- ✅ **ICS Calendar**: Uses `ics` package - compatible with Google Calendar, Outlook, Apple Calendar
+- ✅ **UI Integration**: Export buttons in both trip header and itinerary display with independent loading states
+- ✅ **Authentication**: Server-side auth checks with ownership validation
+- ✅ **Error Handling**: Graceful failures with detailed logging and user-friendly fallbacks
+- ✅ **Next.js 15 Compliance**: Async params handling for latest framework version
+- ✅ **Auto-Download**: Proper Content-Disposition headers with dynamic filename generation
+
+**Export Content Includes:**
+
+- Trip metadata (traveler, destination, dates, purpose)
+- Flight schedules with routes and times
+- Accommodation details with check-in/out dates
+- Daily activities with locations and notes
+- All properly normalized with date/time handling
+
 ### **Phase Complete: Code Quality & Architecture Optimization**
 
 **Major Code Simplification & Cleanup Achievements:**
@@ -390,7 +412,11 @@ These forms are presentational/controlled; no regeneration side-effects inside t
 ```
 middleware.ts                 # Supabase SSR session refresh
 app/
-├── api/chat/route.ts         # AI streaming endpoint with system prompt
+├── api/
+│   ├── chat/route.ts         # AI streaming endpoint with system prompt
+│   └── trips/[tripId]/export/  # Export API routes
+│       ├── pdf/route.ts      # PDF export with Unicode sanitization
+│       └── ics/route.ts      # ICS calendar export
 ├── page.tsx                  # Dynamic import entry point
 ├── trips/
 │   ├── page.tsx             # Trip history dashboard
@@ -420,7 +446,8 @@ components/
 │   ├── button.tsx          # Base button with cursor-pointer
 │   └── loading-spinner.tsx # Consistent loading states
 lib/
-├── suggestions-utils.ts  # Smart Suggestions Engine (canonical mapping, heuristics, hook)
+├── export-normalizer.ts    # Pure itinerary-to-events transformer for PDF/ICS (F3X)
+├── suggestions-utils.ts    # Smart Suggestions Engine (canonical mapping, heuristics, hook)
 ├── itinerary-utils.ts      # Unified JSON extraction logic (58 lines)
 ├── markdown-components.tsx # Reusable ReactMarkdown config (96 lines)
 ├── streaming-utils.ts      # Chat streaming handlers (138 lines)

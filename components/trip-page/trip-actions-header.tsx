@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { logError } from "@/lib/error-logger";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Share2, Trash2, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  Share2,
+  Trash2,
+  FileText,
+  Calendar,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useDelayedIndicator } from "@/hooks/useDelayedIndicator";
 
@@ -18,7 +25,6 @@ interface TripActionsHeaderProps {
     newStatus: "planning" | "booked" | "completed"
   ) => Promise<void> | void;
   onDelete: () => void;
-  onDownloadPDF: () => void;
   onShare: () => void;
   onBackToTrips?: () => void;
 }
@@ -30,12 +36,12 @@ export function TripActionsHeader({
   status,
   onStatusChange,
   onDelete,
-  onDownloadPDF,
   onShare,
   onBackToTrips,
 }: TripActionsHeaderProps) {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
-  const [isPDFLoading, setIsPDFLoading] = useState(false);
+  const [isExportingIcs, setIsExportingIcs] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [localStatus, setLocalStatus] = useState(status);
   const router = useRouter();
@@ -56,20 +62,51 @@ export function TripActionsHeader({
     }
   };
 
-  const handleDownloadPDF = async () => {
-    setIsPDFLoading(true);
-    try {
-      await onDownloadPDF();
-    } catch (error) {
-      console.error("PDF download failed:", error);
-      logError(error, {
-        source: "TripActionsHeader",
-        extra: { action: "pdf", tripId },
-      });
-    } finally {
-      setIsPDFLoading(false);
-    }
-  };
+  const handleExport = useCallback(
+    async (format: "ics" | "pdf") => {
+      const isCurrentlyExporting =
+        format === "ics" ? isExportingIcs : isExportingPdf;
+      if (!tripId || isCurrentlyExporting) return;
+
+      const setExporting =
+        format === "ics" ? setIsExportingIcs : setIsExportingPdf;
+      setExporting(true);
+
+      try {
+        const response = await fetch(`/api/trips/${tripId}/export/${format}`);
+
+        if (!response.ok) {
+          throw new Error(`Export failed: ${response.statusText}`);
+        }
+
+        // Get filename from Content-Disposition header or create default
+        const contentDisposition = response.headers.get("Content-Disposition");
+        const filename =
+          contentDisposition?.match(/filename="([^"]+)"/)?.[1] ||
+          `trip_itinerary.${format}`;
+
+        // Create download link
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error(`${format.toUpperCase()} export failed:`, error);
+        logError(error, {
+          source: "TripActionsHeader",
+          extra: { action: format, tripId },
+        });
+      } finally {
+        setExporting(false);
+      }
+    },
+    [tripId, isExportingIcs, isExportingPdf]
+  );
 
   const handleBackToTrips = () => {
     if (onBackToTrips) {
@@ -191,16 +228,33 @@ export function TripActionsHeader({
             <span className="hidden lg:inline ml-2">Share</span>
           </Button>
 
-          {/* Download PDF Button */}
+          {/* Export Calendar Button */}
           <Button
-            onClick={handleDownloadPDF}
+            onClick={() => handleExport("ics")}
             variant="ghost"
             size="sm"
             className="text-white/70 hover:text-white hover:bg-white/10 transition-colors p-2 sm:px-3"
-            disabled={isPDFLoading}
+            disabled={isExportingIcs}
+            title="Export Calendar"
+          >
+            {isExportingIcs ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
+            ) : (
+              <Calendar className="h-4 w-4" />
+            )}
+            <span className="hidden lg:inline ml-2">Calendar</span>
+          </Button>
+
+          {/* Download PDF Button */}
+          <Button
+            onClick={() => handleExport("pdf")}
+            variant="ghost"
+            size="sm"
+            className="text-white/70 hover:text-white hover:bg-white/10 transition-colors p-2 sm:px-3"
+            disabled={isExportingPdf}
             title="Download PDF"
           >
-            {isPDFLoading ? (
+            {isExportingPdf ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
             ) : (
               <FileText className="h-4 w-4" />

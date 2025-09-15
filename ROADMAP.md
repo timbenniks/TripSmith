@@ -42,6 +42,28 @@ Plan trips through a conversational + structured hybrid flow: fast logistics cap
 
 > Consolidation: Export PDF + ICS under F3X to share transformation pipeline (render → convert → deliver).
 
+### Current Status Summary (Updated: December 2024)
+
+**Phase Complete: F3X Export Layer**
+
+- ✅ **PDF & ICS Exports**: Full server-side generation with auth protection
+- ✅ **Export Normalizer**: Pure transformation of itinerary JSON to exportable events
+- ✅ **UI Integration**: Export buttons in header & itinerary with independent loading states
+- ✅ **Unicode Handling**: Safe PDF text rendering with special character sanitization
+- ✅ **Error Handling**: Graceful failures with user feedback and detailed server logging
+
+**Previously Complete:**
+
+- ✅ F2 Smart Deep Links (flights, maps, hotel, transit) with feature flag
+- ✅ F3D Delete Trip with confirmation modal and API centralization
+- ✅ F3S Public Sharing with optional expiry and manage flow
+- ✅ SSR Auth & Route Protection (TD4) with middleware refresh
+- ✅ Code Quality & Architecture Optimization with shared utilities
+- ✅ Foundational Accessibility (WCAG 2.1 AA baseline)
+- ✅ Smart Suggestions Engine (hybrid workflow with explicit regeneration)
+
+**System Status:** Production-ready MVP with complete trip management, export capabilities, and sharing features.
+
 ## 5. High-Level Dependency Graph
 
 ```
@@ -128,14 +150,24 @@ Scope (Delivered):
 #### F3X Export Layer (PDF + ICS)
 
 Goal: Unified export pipeline producing PDF & calendar file (one per trip) off current itinerary JSON.
-Approach: Server function builds normalized itinerary events, passes to PDF renderer (lightweight library, avoid heavy bundlers) & ICS generator (ics package). Store transient artifact in memory stream → response download.
+Scope (Delivered):
+
+- Server-side API routes: `GET /api/trips/[tripId]/export/pdf` and `GET /api/trips/[tripId]/export/ics`
+- Normalized event extraction via `lib/export-normalizer.ts` (converts itinerary JSON to exportable events)
+- PDF generation using `pdf-lib` with Unicode sanitization (handles special characters like → arrows)
+- ICS calendar generation using `ics` package (compatible with Google Calendar, Outlook, Apple Calendar)
+- Export buttons in trip header and itinerary display with independent loading states
+- Auth-protected downloads with proper filename generation and Content-Disposition headers
+- Error handling with detailed logging and user-friendly fallbacks
+- Next.js 15 async params compliance
+
 Acceptance:
 
-1. Export does not mutate DB.
-2. PDF contains trip header + each day schedule.
-3. ICS includes date/time for each daily event with summary.
-4. Errors surface user-friendly message; logged via `error-logger`.
-   Status: [NS]
+1. Export does not mutate DB. ✅
+2. PDF contains trip header + flights + accommodation + daily schedule. ✅
+3. ICS includes date/time for each event (flights, stays, activities) with descriptions. ✅
+4. Errors surface user-friendly message; logged via `error-logger`. ✅
+   Status: [DONE]
 
 ### F4 Google OAuth
 
@@ -222,10 +254,10 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 - F3S-FE-1 [F3S] FE Share dialog: native date input, create + show URL, Copy, link to Manage [DONE]
 - F3S-FE-2 [F3S] FE Manage shares dialog: list + copy + revoke (revoke-only) [DONE]
 - F3S-FE-3 [F3S] FE Email share form + rate limit client handling [NS]
-- F3X-BE-1 [F3X] BE Normalized itinerary event builder (pure) [NS]
-- F3X-BE-2 [F3X] BE PDF generator module (no heavy deps) [NS]
-- F3X-BE-3 [F3X] BE ICS generator (ics pkg) [NS]
-- F3X-FE-1 [F3X] FE Export buttons + loading states [NS]
+- F3X-BE-1 [F3X] BE Normalized itinerary event builder (pure) [DONE]
+- F3X-BE-2 [F3X] BE PDF generator module (no heavy deps) [DONE]
+- F3X-BE-3 [F3X] BE ICS generator (ics pkg) [DONE]
+- F3X-FE-1 [F3X] FE Export buttons + loading states [DONE]
 
 ### F4 Google OAuth
 

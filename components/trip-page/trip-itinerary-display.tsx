@@ -9,7 +9,15 @@ import { useState, useCallback } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
-import { CalendarDays, MapPin, Clock, Sparkles } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  Clock,
+  Sparkles,
+  Download,
+  FileText,
+  Calendar,
+} from "lucide-react";
 
 interface TripDetails {
   timezone: string;
@@ -34,6 +42,51 @@ export function TripItineraryDisplay({
   tripId,
 }: TripItineraryDisplayProps) {
   const { session } = useAuth(); // session retained in case future features need it (advisories removed)
+  const [isExportingIcs, setIsExportingIcs] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const handleExport = useCallback(
+    async (format: "ics" | "pdf") => {
+      const isCurrentlyExporting =
+        format === "ics" ? isExportingIcs : isExportingPdf;
+      if (!tripId || isCurrentlyExporting) return;
+
+      const setExporting =
+        format === "ics" ? setIsExportingIcs : setIsExportingPdf;
+      setExporting(true);
+
+      try {
+        const response = await fetch(`/api/trips/${tripId}/export/${format}`);
+
+        if (!response.ok) {
+          throw new Error(`Export failed: ${response.statusText}`);
+        }
+
+        // Get filename from Content-Disposition header or create default
+        const contentDisposition = response.headers.get("Content-Disposition");
+        const filename =
+          contentDisposition?.match(/filename="([^"]+)"/)?.[1] ||
+          `trip_itinerary.${format}`;
+
+        // Create download link
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error(`${format.toUpperCase()} export failed:`, error);
+        // TODO: Show user-friendly error toast
+      } finally {
+        setExporting(false);
+      }
+    },
+    [tripId, isExportingIcs, isExportingPdf]
+  );
 
   if (loading) {
     return (
@@ -138,7 +191,7 @@ export function TripItineraryDisplay({
                 <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
                   Your Trip Itinerary
                 </h2>
-                <div className="space-y-1 text-white/70 text-sm">
+                <div className="space-y-1 text-white/70 text-sm mb-4">
                   <div className="flex items-center justify-center gap-2">
                     <MapPin className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">{tripDetails.destination}</span>
@@ -156,6 +209,38 @@ export function TripItineraryDisplay({
                       <span className="truncate">{tripDetails.purpose}</span>
                     </div>
                   )}
+                </div>
+
+                {/* Export Buttons */}
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <Button
+                    onClick={() => handleExport("ics")}
+                    disabled={isExportingIcs}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 focus-ring-contrast"
+                  >
+                    {isExportingIcs ? (
+                      <Download className="h-4 w-4 animate-pulse" />
+                    ) : (
+                      <Calendar className="h-4 w-4" />
+                    )}
+                    Export Calendar
+                  </Button>
+                  <Button
+                    onClick={() => handleExport("pdf")}
+                    disabled={isExportingPdf}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 focus-ring-contrast"
+                  >
+                    {isExportingPdf ? (
+                      <Download className="h-4 w-4 animate-pulse" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
+                    Export PDF
+                  </Button>
                 </div>
               </div>
             </Card>

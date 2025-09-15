@@ -4,8 +4,10 @@ import { Card } from "@/components/ui/card";
 import {
   buildGoogleFlightsUrl,
   buildGoogleMapsSearchUrl,
+  buildHotelSearchUrl,
+  buildTransitDirectionsUrl,
 } from "@/lib/link-builders";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Route } from "lucide-react";
 
 interface ItineraryData {
   type: "complete_itinerary";
@@ -143,7 +145,7 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label={`Open flight search ${flight.route.from} to ${flight.route.to}`}
-                            className="text-white/50 hover:text-white transition-colors"
+                            className="text-white/50 hover:text-white transition-colors focus-ring-contrast rounded-sm"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
@@ -189,16 +191,39 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                 </tr>
               </thead>
               <tbody>
-                {data.accommodation.map((hotel, index) => (
-                  <tr key={index} className="border-b border-white/10">
-                    <td className="py-3 font-medium text-green-300">
-                      {hotel.property}
-                    </td>
-                    <td className="py-3">{hotel.address}</td>
-                    <td className="py-3">{hotel.checkIn}</td>
-                    <td className="py-3">{hotel.checkOut}</td>
-                  </tr>
-                ))}
+                {data.accommodation.map((hotel, index) => {
+                  const linksFlag =
+                    process.env.NEXT_PUBLIC_DEEP_LINKS_ENABLED === "1";
+                  const hotelUrl = linksFlag
+                    ? buildHotelSearchUrl({
+                        property: hotel.property,
+                        cityOrAddress: hotel.address,
+                        checkIn: hotel.checkIn,
+                        checkOut: hotel.checkOut,
+                      })
+                    : null;
+                  return (
+                    <tr key={index} className="border-b border-white/10">
+                      <td className="py-3 font-medium text-green-300 flex items-center gap-2">
+                        <span>{hotel.property}</span>
+                        {hotelUrl && (
+                          <a
+                            href={hotelUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Open hotel search for ${hotel.property}`}
+                            className="text-white/50 hover:text-white transition-colors focus-ring-contrast rounded-sm"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </td>
+                      <td className="py-3">{hotel.address}</td>
+                      <td className="py-3">{hotel.checkIn}</td>
+                      <td className="py-3">{hotel.checkOut}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -237,10 +262,29 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                   const linksFlag =
                     process.env.NEXT_PUBLIC_DEEP_LINKS_ENABLED === "1";
                   let mapsUrl: string | null = null;
+                  let directionsUrl: string | null = null;
+                  let originLabel: string | null = null;
                   if (linksFlag && item.location && item.location.length > 2) {
                     mapsUrl = buildGoogleMapsSearchUrl({
                       query: item.location,
                     });
+                    // Use the first accommodation as origin if available
+                    const origin =
+                      Array.isArray(data.accommodation) &&
+                      data.accommodation.length > 0
+                        ? data.accommodation[0].address ||
+                          data.accommodation[0].property
+                        : null;
+                    if (origin) {
+                      originLabel =
+                        data.accommodation[0].property ||
+                        data.accommodation[0].address;
+                      directionsUrl = buildTransitDirectionsUrl({
+                        originQuery: origin,
+                        destinationQuery: item.location,
+                        mode: "transit",
+                      });
+                    }
                   }
                   return (
                     <tr key={index} className="border-b border-white/10">
@@ -255,9 +299,22 @@ export function ItineraryRenderer({ data }: ItineraryRendererProps) {
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label={`Open map for ${item.location}`}
-                            className="text-white/50 hover:text-white transition-colors"
+                            className="text-white/50 hover:text-white transition-colors focus-ring-contrast rounded-sm"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        {directionsUrl && (
+                          <a
+                            href={directionsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Get transit directions from ${
+                              originLabel || "your hotel"
+                            } to ${item.location}`}
+                            className="text-white/50 hover:text-white transition-colors focus-ring-contrast rounded-sm"
+                          >
+                            <Route className="h-3.5 w-3.5" />
                           </a>
                         )}
                       </td>
