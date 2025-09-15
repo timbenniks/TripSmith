@@ -4,7 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Settings, History } from "lucide-react";
+import { User, LogOut, Settings, History, Shield } from "lucide-react";
+import { isAdmin } from "@/lib/auth-roles";
 
 export function UserMenu() {
   const { user, loading, signOut } = useAuth();
@@ -20,6 +21,11 @@ export function UserMenu() {
   const handleTripHistory = () => {
     setIsUserMenuOpen(false);
     router.push("/trips");
+  };
+
+  const handleAdminDashboard = () => {
+    setIsUserMenuOpen(false);
+    router.push("/admin");
   };
 
   // Close on outside click (more robust than backdrop alone)
@@ -156,12 +162,28 @@ export function UserMenu() {
                   Trip History
                 </button>
 
+                {isAdmin(user) && (
+                  <button
+                    type="button"
+                    onClick={handleAdminDashboard}
+                    role="menuitem"
+                    className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15 focus:ring-2 focus:ring-purple-400/50"
+                    ref={(el) => {
+                      if (el) menuItemsRef.current[1] = el;
+                    }}
+                    tabIndex={-1}
+                  >
+                    <Shield className="w-4 h-4" aria-hidden="true" />
+                    Admin Dashboard
+                  </button>
+                )}
+
                 <button
                   type="button"
                   role="menuitem"
                   className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15 focus:ring-2 focus:ring-purple-400/50"
                   ref={(el) => {
-                    if (el) menuItemsRef.current[1] = el;
+                    if (el) menuItemsRef.current[isAdmin(user) ? 2 : 1] = el;
                   }}
                   tabIndex={-1}
                 >
@@ -177,7 +199,7 @@ export function UserMenu() {
                   role="menuitem"
                   className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15 focus:ring-2 focus:ring-purple-400/50"
                   ref={(el) => {
-                    if (el) menuItemsRef.current[2] = el;
+                    if (el) menuItemsRef.current[isAdmin(user) ? 3 : 2] = el;
                   }}
                   tabIndex={-1}
                 >
