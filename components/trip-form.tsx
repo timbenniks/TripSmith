@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/components/auth-provider";
 import { tripService } from "@/lib/trip-service";
+import { useAnalytics } from "@/lib/analytics";
 
 export interface TripDetails {
   timezone: string;
@@ -22,6 +23,7 @@ interface TripFormProps {
 
 export function TripForm({ onSubmit }: TripFormProps) {
   const { user } = useAuth();
+  const { track } = useAnalytics();
   const [formData, setFormData] = useState<TripDetails>({
     timezone: "",
     destination: "",
@@ -213,6 +215,14 @@ export function TripForm({ onSubmit }: TripFormProps) {
       const trip = await tripService.createTrip(user, formData);
 
       if (trip) {
+        // Track successful trip creation
+        track("trip_created", {
+          trip_id: trip.id,
+          user_id: user.id,
+          destination: formData.destination,
+          purpose: formData.purpose,
+        });
+
         // Pass both trip data and trip ID to parent
         onSubmit(formData, trip.id);
       } else {
@@ -222,6 +232,13 @@ export function TripForm({ onSubmit }: TripFormProps) {
       }
     } catch (error) {
       console.error("Error creating trip:", error);
+      // Track trip creation error
+      track("error_occurred", {
+        error_type: "trip_creation_failed",
+        error_message: error instanceof Error ? error.message : "Unknown error",
+        component: "TripForm",
+        user_id: user.id,
+      });
       // Still allow them to continue without saving
       onSubmit(formData);
     } finally {

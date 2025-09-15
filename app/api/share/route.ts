@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerClient } from "@/lib/supabase-server";
+import { trackServerEvent } from "@/lib/analytics";
 
 // Use Edge Runtime for better cold start performance
 export const runtime = 'edge';
@@ -67,6 +68,13 @@ export async function POST(req: Request) {
     if (insErr || !row) {
       return NextResponse.json({ error: "Failed to create share" }, { status: 500 });
     }
+
+    // Track share creation event
+    trackServerEvent('trip_shared', {
+      trip_id: tripId,
+      user_id: user.id,
+      share_method: 'link'
+    });
 
     // Build absolute URL that works in prod and local dev
     const envBase = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL || "";

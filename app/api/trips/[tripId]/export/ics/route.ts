@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerClient } from '@/lib/supabase-server';
 import { normalizeItineraryToEvents } from '@/lib/export-normalizer';
+import { trackServerEvent } from '@/lib/analytics';
 import { createEvents, EventAttributes } from 'ics';
 
 export async function GET(
@@ -39,6 +40,14 @@ export async function GET(
 
     // Normalize itinerary to events
     const normalized = normalizeItineraryToEvents(trip.itinerary_data);
+
+    // Track ICS export event and start performance monitoring
+    const startTime = performance.now();
+    trackServerEvent('trip_export_ics', {
+      trip_id: tripId,
+      user_id: user.id,
+      export_format: 'ics'
+    });
 
     // Convert to ICS events
     const icsEvents: EventAttributes[] = normalized.events.map((event) => {
@@ -148,6 +157,18 @@ export async function GET(
         { error: 'Failed to generate calendar file' },
         { status: 500 }
       );
+    }
+
+    // Track performance
+    const duration = performance.now() - startTime;
+    if (duration > 3000) { // Log slow ICS generation (>3s)
+      trackServerEvent('export_failed', {
+        trip_id: tripId,
+        user_id: user.id,
+        export_format: 'ics',
+        error_type: 'slow_performance',
+        session_duration: Math.round(duration)
+      });
     }
 
     // Return ICS as download

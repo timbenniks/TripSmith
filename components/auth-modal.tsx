@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import Link from "next/link";
+import { useAnalytics } from "@/lib/analytics";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,6 +20,38 @@ export function AuthModal({
   onClose,
   variant = "modal",
 }: AuthModalProps) {
+  const { track } = useAnalytics();
+
+  // Track auth events
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      switch (event) {
+        case "SIGNED_IN":
+          track("auth_login", {
+            provider: session?.user?.app_metadata?.provider,
+            user_id: session?.user?.id,
+          });
+          break;
+        case "SIGNED_OUT":
+          track("auth_logout");
+          break;
+        case "USER_UPDATED":
+          // Track successful signup (new user)
+          if (session?.user && !session.user.last_sign_in_at) {
+            track("auth_signup", {
+              provider: session.user.app_metadata?.provider,
+              user_id: session.user.id,
+            });
+          }
+          break;
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [track]);
+
   if (!isOpen) return null;
 
   // Inline variant - no modal wrapper

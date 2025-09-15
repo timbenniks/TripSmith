@@ -22,6 +22,7 @@ import { tripService } from "@/lib/trip-service";
 import { logError } from "@/lib/error-logger";
 import { useAuth } from "@/components/auth-provider";
 import { AuthModal } from "@/components/auth-modal";
+import { useAnalytics } from "@/lib/analytics";
 import {
   extractItineraryData,
   hasCompleteItinerary,
@@ -36,6 +37,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
   const { user, loading } = useAuth();
+  const { track } = useAnalytics();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -159,6 +161,13 @@ export function ChatInterface({ resumeTripId }: ChatInterfaceProps) {
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+
+    // Track chat message sent
+    track("chat_message_sent", {
+      message_type: "user",
+      user_id: user?.id,
+      trip_id: currentTripId || undefined,
+    });
 
     const userMessage: Message = {
       id: Date.now().toString(),

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerClient } from '@/lib/supabase-server';
 import { normalizeItineraryToEvents } from '@/lib/export-normalizer';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { trackServerEvent } from '@/lib/analytics';
 
 // Helper function to sanitize text for PDF rendering (WinAnsi encoding)
 function sanitizeTextForPdf(text: string): string {
@@ -54,6 +55,14 @@ export async function GET(
 
     // Normalize itinerary to events
     const normalized = normalizeItineraryToEvents(trip.itinerary_data);
+
+    // Track PDF export event and start performance monitoring
+    const startTime = performance.now();
+    trackServerEvent('trip_export_pdf', {
+      trip_id: tripId,
+      user_id: user.id,
+      export_format: 'pdf'
+    });
 
     // Generate PDF
     const pdfDoc = await PDFDocument.create();
@@ -194,6 +203,18 @@ export async function GET(
 
     // Generate PDF bytes
     const pdfBytes = await pdfDoc.save();
+
+    // Track performance
+    const duration = performance.now() - startTime;
+    if (duration > 5000) { // Log slow PDF generation (>5s)
+      trackServerEvent('export_failed', {
+        trip_id: tripId,
+        user_id: user.id,
+        export_format: 'pdf',
+        error_type: 'slow_performance',
+        session_duration: Math.round(duration)
+      });
+    }
 
     // Return PDF as download
     const filename = `${normalized.meta.destination?.replace(/[^a-zA-Z0-9]/g, '_') || 'trip'}_itinerary.pdf`;

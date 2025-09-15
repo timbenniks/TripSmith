@@ -31,19 +31,19 @@ Plan trips through a conversational + structured hybrid flow: fast logistics cap
 - **Value**: Broader user access, account linking flexibility
 - **Status**: **COMPLETED** - Google OAuth live in production
 
-### **F5: Analytics & Observability**
+### **F5: Analytics & Observability** ✅
 
 - **Goal**: Instrument core user funnel and itinerary interactions
 - **Scope**: Plausible integration, custom events (trip_create, exports, shares)
 - **Value**: Data-driven product decisions, performance monitoring
-- **Status**: **READY TO START** - F4 identity foundation complete
+- **Status**: **COMPLETED** - Comprehensive analytics instrumentation live
 
 ### **F6: Admin Dashboard**
 
 - **Goal**: Internal tools for user management and system monitoring
 - **Scope**: Protected `/admin` routes, user metrics, basic management
 - **Value**: Operational visibility, support tooling
-- **Status**: Depends on F5 (analytics events)
+- **Status**: **READY TO START** - F5 analytics foundation complete
 
 ## 🔮 Future Opportunities
 

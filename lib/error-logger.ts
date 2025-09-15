@@ -1,6 +1,8 @@
-// Lightweight client-side error logger with subscription.
+// Lightweight client-side error logger with subscription and analytics integration.
 // Keeps errors in-memory (per session) and allows UI components to subscribe.
 // Designed to stay dependency-free and silent unless a failure occurs.
+
+import { trackError } from './analytics';
 
 export interface LoggedError {
   id: string;
@@ -42,6 +44,15 @@ class ErrorStore {
     this.errors.push(entry);
     if (this.errors.length > this.max) this.errors.shift();
     this.emit();
+
+    // Track error with analytics if it's an actual Error object
+    if (error instanceof Error) {
+      trackError(error, {
+        component: context?.source,
+        additional_context: context?.extra
+      });
+    }
+
     return entry.id;
   }
 
