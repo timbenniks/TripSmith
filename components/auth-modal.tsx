@@ -74,6 +74,11 @@ export function AuthModal({
           }}
           providers={["github"]}
           onlyThirdPartyProviders={true}
+          redirectTo={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/auth/callback`
+              : undefined
+          }
         />
       </div>
     );
@@ -220,6 +225,11 @@ export function AuthModal({
           }}
           providers={["github"]}
           onlyThirdPartyProviders={true}
+          redirectTo={
+            typeof window !== "undefined"
+              ? `${window.location.origin}/auth/callback`
+              : undefined
+          }
         />
       </div>
     </div>

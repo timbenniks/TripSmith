@@ -205,51 +205,7 @@ export function TripHistoryDashboard({
                 >
                   <TripCard trip={trip} onSelect={() => {}} />
                 </Link>
-                {/* Inline delete button (positioned absolutely over card) */}
-                <button
-                  type="button"
-                  className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-red-300 hover:text-red-200 bg-red-600/30 hover:bg-red-600/40 border border-red-600/50 rounded-md px-2 py-1 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-red-400/50"
-                  aria-label={`Delete trip ${trip.name}`}
-                  disabled={deletingIds.has(trip.id)}
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (deletingIds.has(trip.id)) return;
-                    setLastError(null);
-                    const confirmed = confirm(
-                      `Delete '${trip.name}'? This cannot be undone.`
-                    );
-                    if (!confirmed) return;
-                    // optimistic remove
-                    setDeletingIds((prev) => new Set(prev).add(trip.id));
-                    setLiveTrips((prev) =>
-                      prev.filter((t) => t.id !== trip.id)
-                    );
-                    onLocalDelete?.(trip.id);
-                    try {
-                      const res = await fetch(`/api/trips/${trip.id}`, {
-                        method: "DELETE",
-                      });
-                      if (!res.ok) {
-                        throw new Error(`Delete failed: ${res.status}`);
-                      }
-                    } catch (err) {
-                      console.error("Dashboard delete failed", err);
-                      setLastError(`Failed to delete '${trip.name}'.`);
-                      // rollback
-                      setLiveTrips((prev) => [trip, ...prev]);
-                      onLocalRestore?.(trip);
-                    } finally {
-                      setDeletingIds((prev) => {
-                        const next = new Set(prev);
-                        next.delete(trip.id);
-                        return next;
-                      });
-                    }
-                  }}
-                >
-                  {deletingIds.has(trip.id) ? "Deleting…" : "Delete"}
-                </button>
+                {/* Delete button removed per request */}
               </div>
             );
           })

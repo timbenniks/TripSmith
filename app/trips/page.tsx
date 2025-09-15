@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { tripService, Trip } from "@/lib/trip-service";
 import { TripHistoryDashboard } from "@/components/trip-history-dashboard";
@@ -10,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { AnimatedBackground } from "@/components/animated-background";
 
 export default function TripsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +18,6 @@ export default function TripsPage() {
     height: 800,
   });
   const [mounted, setMounted] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -44,16 +42,9 @@ export default function TripsPage() {
     }
   }, []);
 
-  // Handle auth redirect
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/");
-    }
-  }, [user, authLoading, router]);
-
   // Load trips data only when we have a user
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user) {
       const loadTrips = async () => {
         setTripsLoading(true);
         try {
@@ -69,30 +60,10 @@ export default function TripsPage() {
 
       loadTrips();
     }
-  }, [user, authLoading]);
-
-  // Show loading while auth is being determined
-  if (authLoading) {
-    return (
-      <div className="h-screen flex flex-col relative overflow-hidden">
-        <AnimatedBackground
-          windowDimensions={windowDimensions}
-          mounted={mounted}
-        />
-        <div className="flex items-center justify-center h-full relative z-10">
-          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
-            <LoadingSpinner />
-            <p className="text-white/70 mt-4 text-center">
-              Checking authentication...
-            </p>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  }, [user]);
 
   // Show loading while trips are being loaded
-  if (user && tripsLoading) {
+  if (tripsLoading || !user) {
     return (
       <div className="h-screen flex flex-col relative overflow-hidden">
         <AnimatedBackground
@@ -125,11 +96,6 @@ export default function TripsPage() {
         </div>
       </div>
     );
-  }
-
-  // Don't render anything while redirecting
-  if (!user) {
-    return null;
   }
 
   return (

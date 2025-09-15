@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import { getServerClient } from '@/lib/supabase-server';
+import { jsonError } from '@/lib/api-errors';
 import { randomUUID } from 'crypto';
 import { buildDeterministicSeeds, consolidateSeedStrings } from '@/lib/suggestions-seeds';
 import { Suggestion } from '@/lib/types';
@@ -21,6 +23,15 @@ function adaptiveMax(daySpan?: number, explicit?: number) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Enforce authentication
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const supabase = await getServerClient(token);
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      return jsonError('NO_SESSION', 'Authentication required', 401);
+    }
+
     const body = (await req.json()) as SuggestionRequestBody;
     const { tripId, context = {}, seeds = [], max } = body;
     if (!tripId) {

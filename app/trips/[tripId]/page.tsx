@@ -15,7 +15,7 @@ export default function TripPage() {
   const params = useParams();
   const router = useRouter();
   const tripId = params.tripId as string;
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,16 +49,9 @@ export default function TripPage() {
     }
   }, []);
 
-  // Handle auth redirect
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/");
-    }
-  }, [user, authLoading, router]);
-
   // Load trip data only when we have a user
   useEffect(() => {
-    if (user && !authLoading && tripId && !hasStartedLoading) {
+    if (user && tripId && !hasStartedLoading) {
       setHasStartedLoading(true);
       const loadTrip = async () => {
         try {
@@ -84,7 +77,7 @@ export default function TripPage() {
 
       loadTrip();
     }
-  }, [user, authLoading, tripId, hasStartedLoading]);
+  }, [user, tripId, hasStartedLoading]);
 
   const handleBackToTrips = () => {
     router.push("/trips");
@@ -92,14 +85,10 @@ export default function TripPage() {
 
   // Determine loading state and message
   const isLoading =
-    authLoading ||
+    (!user && !error) ||
     (user && !hasStartedLoading) ||
     (hasStartedLoading && !trip && !error);
-  const loadingMessage = authLoading
-    ? "Checking authentication..."
-    : (user && !hasStartedLoading) || (hasStartedLoading && !trip && !error)
-    ? "Loading your trip..."
-    : "";
+  const loadingMessage = "Loading your trip...";
 
   // Show single loading state
   if (isLoading) {
@@ -141,11 +130,6 @@ export default function TripPage() {
         </div>
       </div>
     );
-  }
-
-  // Don't render anything while redirecting
-  if (!user) {
-    return null;
   }
 
   // Only render MatureTripPage after trip data is loaded

@@ -58,26 +58,6 @@ TD tasks cut across; TD2 ideally before M1 billing logic
 
 ## 6. PRDs (Concise)
 
-### F1 Weather & Disruption Advisories (Deferred)
-
-Goal: Surface contextual weather + disruption notes (e.g., typhoon season, transit strikes) non-destructively inside itinerary helpful notes section.
-Scope (In): Server-side fetch (Open-Meteo or placeholder abstraction), seasonal heuristics, caching per destination+date range (24h TTL), merge as advisory blocks with `source` + `retrievedAt`.
-Scope (Out): Real-time severe alert push, user-specific notifications, multi-locale formatting.
-User Stories:
-
-- As a traveler I see weather summary for my trip dates so I can pack appropriately.
-- As a planner I get disruption advisories (holiday closures, transit strikes) to adjust schedule.
-  Data/Schema: Add `advisories` array into `itinerary_data.recommendations` or parallel `advisories` root (non-breaking). Lean approach: new root key `advisories` with typed objects.
-  API: Extend `/api/chat` post-processing step OR a new endpoint `/api/advisories?tripId` (idempotent). Prefer new endpoint for isolation.
-  Acceptance Criteria:
-
-1. Advisory fetch does not trigger itinerary regeneration.
-2. Rendering clearly labeled “Advisories” block; removing them doesn’t remove core itinerary JSON.
-3. Caching prevents >1 external call per trip per 24h.
-   Metrics: advisory fetch latency, cache hit ratio, presence adoption (% trips with advisories fetched).
-   Risks: External API flakiness → mitigation: graceful degrade with placeholder message.
-   Status: [HLD]
-
 ### F2 Smart Deep Links
 
 Goal: Add actionable links (Google Flights, Maps search, Hotel, Transit directions) to itinerary items.
@@ -172,34 +152,6 @@ Scope: Protected route `/admin`; metrics cards (trip count, active users last 7d
 Acceptance: Non-admin 403; all queries paginated; no PII beyond email & counts.
 Status: [NS]
 
-### AUTH Authentication Hardening
-
-Goal: Eliminate intermittent 401 responses in authenticated API routes by unifying server/client Supabase session handling and standardizing error semantics.
-Scope (In): Central server client factory, structured API error format, retrofit existing protected routes (chat, delete), lightweight session health endpoint, optimistic UI differentiation of auth errors, baseline logging & manual matrix until test harness (TD2).
-Scope (Out): Full observability stack, multi-session concurrency conflict handling (future), rate limiting (handled later under SEC), full metrics datastore.
-Success Metrics: <2% unexpected 401 rate across delete/chat requests (measured over rolling 24h dev/staging logs), 100% protected routes using shared factory, user-facing messages distinguish session-expired vs permission vs not-found.
-Risks: Silent regression if future route bypasses factory; mitigated by lint note / code search in PR template.
-Status: [NS]
-
-Tasks:
-
-- AUTH-BE-1 [AUTH] BE Create `lib/supabase-server.ts` factory (single `getServerClient()` with stable cookie adapter) and migrate all API routes. [NS]
-- AUTH-BE-2 [AUTH] BE Add `/api/auth/ping` returning `{ authenticated: boolean, userId?: string }`. 200 when authenticated, 401 otherwise. [NS]
-- AUTH-BE-3 [AUTH] BE Standardize JSON error schema `{ code, message }` + map: 401 `NO_SESSION`, 403 `NOT_OWNER`, 404 `NOT_FOUND`, 422 `INVALID_INPUT`, 500 `SERVER_ERROR`. [NS]
-- AUTH-BE-4 [AUTH] BE Retrofit existing routes (`/api/chat`, `/api/trips/[tripId]` DELETE) to use factory + error schema. [NS]
-- AUTH-FE-1 [AUTH] FE Update `trip-service.deleteTrip` to return `{ ok, status, code?, message? }` (no boolean only). [NS]
-- AUTH-FE-2 [AUTH] FE Show differentiated toasts/messages (session expired → prompt re-login modal, not owner → generic authorization message, not found → silent removal rollback). [NS]
-- AUTH-FE-3 [AUTH] FE Add session health check (invoke ping on mount of trip page; if 401 trigger auth modal). [NS]
-- AUTH-OPS-1 [AUTH] OPS Add minimal server log wrapper counting 401/403 occurrences (dev/staging only) with console summary every 50 requests. [NS]
-- AUTH-DOC-1 [AUTH] DOC Add auth section to architecture guide (flow, factory usage example, error codes). [NS]
-- AUTH-QA-1 [AUTH] QA Manual matrix doc (login state, logout mid-tab, ownership mismatch, stale page) until TD2 harness active. [NS]
-- AUTH-TST-1 [AUTH] TST (Deferred) Add Vitest auth route ping test once TD2 harness lands. Mark `[HLD]` until TD2. [HLD]
-
-Deferred / Future:
-
-- JWT refresh telemetry & proactive renewal (after metrics system). [FUTURE]
-- Cross-tab session invalidation broadcast channel. [FUTURE]
-
 ### TD1 Accessibility Audit
 
 Goal: Full sweep with axe / Playwright. Document issues + fixes.
@@ -233,15 +185,6 @@ Status: [NS]
 
 Format: `TASK_ID  [Track]  Category  Desc  Status`
 Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
-
-### F1 Initial Slice
-
-F1 track deferred after initial experimental slice due to low reliability / auth friction. Endpoint, UI panel, and schema artifacts removed to reduce maintenance surface. Re-introduce later with external provider integration + test harness.
-
-Removed Tasks (historical reference):
-
-- F1-BE-1 (Advisories endpoint + caching) [REMOVED]
-- F1-UI-1 (Manual advisories fetch panel) [REMOVED]
 
 ### F2 Deep links
 
