@@ -3,6 +3,7 @@
 import { Trip } from "@/lib/trip-service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { glassStyles, formatDistanceToNow } from "@/lib/utils";
 import {
   MapPin,
   Calendar,
@@ -13,7 +14,6 @@ import {
   Hotel,
   CalendarDays,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 interface TripCardProps {
   trip: Trip;
@@ -47,9 +47,7 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
     }
   };
 
-  const lastUpdated = formatDistanceToNow(new Date(trip.updated_at), {
-    addSuffix: true,
-  });
+  const lastUpdated = formatDistanceToNow(new Date(trip.updated_at));
   const messageCount = trip.chat_history?.length || 0;
   const hasItinerary =
     trip.itinerary_data && Object.keys(trip.itinerary_data).length > 0;
@@ -60,7 +58,7 @@ export function TripCard({ trip, onSelect }: TripCardProps) {
   return (
     <div>
       <Card
-        className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 h-full cursor-pointer group hover:border-purple-400/50 transition-all duration-300"
+        className={`${glassStyles.card} ${glassStyles.hover} h-full cursor-pointer group`}
         onClick={onSelect}
       >
         <div className="p-6 h-full flex flex-col">

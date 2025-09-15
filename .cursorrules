@@ -1,0 +1,51 @@
+# TripSmith AI Travel Planner - Cursor Rules
+
+## Project Overview
+Next.js 15 + React 19 + TypeScript + Supabase + OpenAI GPT-4. Cinematic dark theme with glass morphism. Production-ready MVP with trip planning, export (PDF/ICS), sharing, and smart suggestions.
+
+## Current Status
+✅ Complete: Export system (PDF/ICS), sharing, auth, suggestions engine
+🎯 Next: Analytics (F5), Google OAuth (F4), Admin dashboard (F6)
+
+## Core Architecture Patterns
+
+### Authentication & Routes
+- SSR-first auth: `getServerClient()` for API routes, `app/trips/layout.tsx` gates protected pages
+- Async params in Next.js 15: `{ params }: { params: Promise<{ tripId: string }> }` then `const { tripId } = await params;`
+
+### Data Flow
+- AI responses → JSON extraction (`lib/itinerary-utils.ts`) → Database storage → Export normalization (`lib/export-normalizer.ts`)
+- Chat interface uses streaming with explicit regeneration (no auto-rewrites)
+
+### UI/UX Patterns
+- Glass morphism: `bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20`
+- Accessibility: `.text-contrast-*` classes, focus traps, live regions
+- Loading states: Separate state per action (avoid shared spinners)
+- Export buttons: Independent loading for PDF vs ICS
+
+### Key Utilities
+- `lib/export-normalizer.ts` - Converts itinerary JSON to PDF/ICS events
+- `lib/link-builders.ts` - Deep links (flights, hotels, maps, transit) with Unicode sanitization
+- `lib/streaming-utils.ts` - Chat streaming with itinerary detection
+- `lib/suggestions-utils.ts` - Smart suggestions engine with suppression logic
+
+### Critical Gotchas
+- Unicode in PDFs: Use `sanitizeTextForPdf()` (→ becomes ->)
+- Export API routes: Server-side auth + ownership checks required
+- Suggestion persistence: `localStorage: ts-dismissed-<tripId>`
+- 3D animations: Homepage only (performance optimization)
+
+### File Structure
+```
+app/api/trips/[tripId]/export/{pdf,ics}/route.ts  # Export endpoints
+components/trip-page/                             # Trip management UI
+lib/export-normalizer.ts                         # PDF/ICS transformer
+```
+
+## Development Guidelines
+- Use shared utilities to avoid duplication
+- Server-side auth for all API routes
+- Glass morphism design system
+- Accessibility-first (WCAG 2.1 AA)
+- Performance: No unnecessary animations on trip pages
+- Type safety: Proper null checks, avoid non-null assertions
