@@ -83,8 +83,9 @@ export function HotelDetailsForm({
           Add Hotel Details
         </h5>
         <button
+          type="button"
           onClick={onClose}
-          className="text-[11px] text-white/50 hover:text-white/80"
+          className="text-[11px] text-white/50 hover:text-white/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 rounded"
           aria-label="Close hotel details form"
         >
           Close
@@ -128,14 +129,16 @@ export function HotelDetailsForm({
       </div>
       <div className="flex justify-end gap-2 pt-1">
         <button
+          type="button"
           onClick={onCancel}
-          className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80"
+          className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
         >
           Cancel
         </button>
         <button
+          type="button"
           onClick={onSubmit}
-          className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 border border-purple-400/40 text-white font-medium"
+          className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 border border-purple-400/40 text-white font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
         >
           Apply Hotel
         </button>

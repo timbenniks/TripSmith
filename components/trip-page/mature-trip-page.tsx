@@ -251,6 +251,7 @@ export function MatureTripPage({
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
+                  type="button"
                   onClick={async () => {
                     const previousStatus = trip.status;
                     setTrip((prev) => ({ ...prev, status: "completed" }));
@@ -264,13 +265,14 @@ export function MatureTripPage({
                     }
                     setShowCompleteSuggestion(false);
                   }}
-                  className="px-2 py-1 rounded-md bg-green-500/20 hover:bg-green-500/30 text-green-300 text-[11px] font-medium transition-colors"
+                  className="px-2 py-1 rounded-md bg-green-500/20 hover:bg-green-500/30 text-green-300 text-[11px] font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-400/50"
                 >
                   Mark Completed
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowCompleteSuggestion(false)}
-                  className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[11px] transition-colors"
+                  className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[11px] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 >
                   Dismiss
                 </button>
@@ -352,8 +354,9 @@ export function MatureTripPage({
             {/* Mobile Toggle Button */}
             {(currentItinerary || messages.length > 0) && (
               <button
+                type="button"
                 onClick={() => setShowItinerary(!showItinerary)}
-                className="lg:hidden fixed bottom-4 right-4 z-30 bg-purple-600/90 hover:bg-purple-700/90 text-white p-3 rounded-full shadow-xl transition-all duration-200 cursor-pointer backdrop-blur-sm border border-white/20 ring-2 ring-purple-400/20"
+                className="lg:hidden fixed bottom-4 right-4 z-30 bg-purple-600/90 hover:bg-purple-700/90 text-white p-3 rounded-full shadow-xl transition-all duration-200 cursor-pointer backdrop-blur-sm border border-white/20 ring-2 ring-purple-400/20 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                 aria-label={showItinerary ? "Show chat" : "Show itinerary"}
               >
                 <span
@@ -486,7 +489,7 @@ export function MatureTripPage({
                     await navigator.clipboard.writeText(shareUrl);
                   } catch {}
                 }}
-                className="px-3 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-3 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
               >
                 Copy
               </button>
@@ -514,7 +517,7 @@ export function MatureTripPage({
                   setShowShareDialog(false);
                   setTimeout(() => setShowManageShares(true), 50);
                 }}
-                className="text-sm text-white/70 hover:text-white underline underline-offset-4"
+                className="text-sm text-white/70 hover:text-white underline underline-offset-4 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 rounded"
               >
                 Manage links
               </button>

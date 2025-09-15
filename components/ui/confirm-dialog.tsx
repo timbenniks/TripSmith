@@ -131,19 +131,21 @@ export function ConfirmDialog({
             <div className="flex justify-end gap-3">
               {!hideCancel && (
                 <button
+                  type="button"
                   ref={cancelBtnRef}
                   onClick={onCancel}
                   disabled={busy}
-                  className="px-4 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-purple-400/50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {cancelLabel}
                 </button>
               )}
               <button
+                type="button"
                 ref={confirmBtnRef}
                 onClick={onConfirm}
                 disabled={busy}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400/50 disabled:opacity-40 ${
+                className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400/50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed ${
                   variant === "danger"
                     ? "bg-red-600/80 hover:bg-red-600 text-white"
                     : "bg-purple-600 hover:bg-purple-700 text-white"

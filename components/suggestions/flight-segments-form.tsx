@@ -98,8 +98,9 @@ export function FlightSegmentsForm({
           Add Flight Details (Multiple Legs)
         </h5>
         <button
+          type="button"
           onClick={onClose}
-          className="text-[11px] text-white/50 hover:text-white/80"
+          className="text-[11px] text-white/50 hover:text-white/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 rounded"
           aria-label="Close flight details form"
         >
           Close
@@ -158,10 +159,11 @@ export function FlightSegmentsForm({
                     </select>
                     {segments.length > 1 && (
                       <button
+                        type="button"
                         onClick={() =>
                           removeSegment(seg.id, seg.direction, legIndex)
                         }
-                        className="text-[10px] px-2 py-1 rounded bg-red-600/30 hover:bg-red-600/50 text-red-100 border border-red-500/40"
+                        className="text-[10px] px-2 py-1 rounded bg-red-600/30 hover:bg-red-600/50 text-red-100 border border-red-500/40 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/50"
                         aria-label={`Remove ${seg.direction} leg ${legIndex}`}
                       >
                         Remove
@@ -222,10 +224,11 @@ export function FlightSegmentsForm({
                   </div>
                   <div className="flex items-start md:col-span-1 pt-0.5">
                     <button
+                      type="button"
                       onClick={() =>
                         onChange(segments.filter((s) => s.id !== seg.id))
                       }
-                      className="text-[10px] w-full px-2 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80"
+                      className="text-[10px] w-full px-2 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                       aria-label={`Delete this ${seg.direction} leg`}
                     >
                       Delete
@@ -238,17 +241,19 @@ export function FlightSegmentsForm({
         </ul>
         <div className="flex flex-wrap gap-2 mt-4">
           <button
+            type="button"
             ref={addOutboundBtnRef}
             onClick={() => addSegment("outbound")}
-            className="text-[11px] px-2.5 py-1.5 rounded-md bg-blue-600/40 hover:bg-blue-600/60 border border-blue-400/40 text-white"
+            className="text-[11px] px-2.5 py-1.5 rounded-md bg-blue-600/40 hover:bg-blue-600/60 border border-blue-400/40 text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400/50"
             aria-label="Add outbound flight leg"
           >
             + Outbound Leg
           </button>
           <button
+            type="button"
             ref={addInboundBtnRef}
             onClick={() => addSegment("inbound")}
-            className="text-[11px] px-2.5 py-1.5 rounded-md bg-green-600/40 hover:bg-green-600/60 border border-green-400/40 text-white"
+            className="text-[11px] px-2.5 py-1.5 rounded-md bg-green-600/40 hover:bg-green-600/60 border border-green-400/40 text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-400/50"
             aria-label="Add inbound flight leg"
           >
             + Inbound Leg
@@ -257,14 +262,16 @@ export function FlightSegmentsForm({
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <button
+          type="button"
           onClick={onCancel}
-          className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80"
+          className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
         >
           Cancel
         </button>
         <button
+          type="button"
           onClick={onSubmit}
-          className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 border border-purple-400/40 text-white font-medium"
+          className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 border border-purple-400/40 text-white font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
         >
           Apply Flights
         </button>

@@ -554,8 +554,9 @@ export function SuggestionBubblesBar({
           )}
           {state === "error" && (
             <button
+              type="button"
               onClick={() => setState("idle")}
-              className="text-[11px] px-3 py-1.5 rounded-full bg-red-600/20 border border-red-500/40 text-red-200 hover:bg-red-600/30 transition-colors"
+              className="text-[11px] px-3 py-1.5 rounded-full bg-red-600/20 border border-red-500/40 text-red-200 hover:bg-red-600/30 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/50"
             >
               Retry suggestions
             </button>
@@ -563,6 +564,7 @@ export function SuggestionBubblesBar({
           {state === "ready" &&
             suggestions.map((s: any, idx) => (
               <button
+                type="button"
                 key={s.id}
                 ref={(el) => {
                   if (el) bubbleButtonsRef.current[idx] = el;

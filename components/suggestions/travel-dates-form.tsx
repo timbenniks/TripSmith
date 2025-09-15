@@ -46,8 +46,9 @@ export function TravelDatesForm({
           Set Travel Dates
         </h5>
         <button
+          type="button"
           onClick={onClose}
-          className="text-[11px] text-white/50 hover:text-white/80"
+          className="text-[11px] text-white/50 hover:text-white/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 rounded"
           aria-label="Close travel dates form"
         >
           Close
@@ -82,15 +83,17 @@ export function TravelDatesForm({
       </div>
       <div className="flex justify-end gap-2 pt-1">
         <button
+          type="button"
           onClick={onCancel}
-          className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80"
+          className="text-[11px] px-3 py-1.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/80 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
         >
           Cancel
         </button>
         <button
+          type="button"
           onClick={onSubmit}
           disabled={!!error}
-          className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 disabled:bg-purple-600/40 disabled:cursor-not-allowed border border-purple-400/40 text-white font-medium"
+          className="text-[11px] px-3 py-1.5 rounded-md bg-purple-600/70 hover:bg-purple-600 disabled:bg-purple-600/40 disabled:cursor-not-allowed border border-purple-400/40 text-white font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
         >
           Apply Dates
         </button>

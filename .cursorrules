@@ -49,3 +49,10 @@ lib/export-normalizer.ts                         # PDF/ICS transformer
 - Accessibility-first (WCAG 2.1 AA)
 - Performance: No unnecessary animations on trip pages
 - Type safety: Proper null checks, avoid non-null assertions
+
+## TypeScript Standards
+- **ALWAYS add TypeScript types** for all new code (functions, interfaces, components)
+- **MANDATORY**: Run `npx tsc --noEmit --pretty` after any code changes to verify type safety
+- Use strict TypeScript configuration - no `any` types without explicit justification
+- Prefer type inference over explicit typing when TypeScript can infer correctly
+- Fix all TypeScript errors before committing code

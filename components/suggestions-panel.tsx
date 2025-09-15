@@ -85,8 +85,9 @@ export function SuggestionsPanel({
             </span>
           )}
           <button
+            type="button"
             onClick={() => setOpen((o) => !o)}
-            className="text-[11px] px-2 py-1 rounded-md border border-white/15 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            className="text-[11px] px-2 py-1 rounded-md border border-white/15 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
             aria-expanded={open}
           >
             {open ? "Hide" : "Show"}
@@ -95,8 +96,9 @@ export function SuggestionsPanel({
       </div>
       {!open && state === "idle" && (
         <button
+          type="button"
           onClick={() => setOpen(true)}
-          className="w-full text-left group relative overflow-hidden rounded-lg border border-white/15 bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/[0.04] backdrop-blur-xl px-4 py-3 transition-colors"
+          className="w-full text-left group relative overflow-hidden rounded-lg border border-white/15 bg-gradient-to-br from-white/5 to-white/[0.02] hover:from-white/10 hover:to-white/[0.04] backdrop-blur-xl px-4 py-3 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
         >
           <span className="block text-[12px] font-medium text-white/80 mb-1">
             Generate Suggestions
@@ -120,9 +122,10 @@ export function SuggestionsPanel({
                 Failed to generate suggestions.
               </span>
               <button
+                type="button"
                 onClick={() => canRegenerate() && generate()}
                 disabled={!canRegenerate()}
-                className="text-[11px] underline decoration-dotted hover:decoration-solid text-red-200/80 hover:text-red-100 disabled:opacity-40"
+                className="text-[11px] underline decoration-dotted hover:decoration-solid text-red-200/80 hover:text-red-100 disabled:opacity-40 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/50 rounded disabled:cursor-not-allowed"
               >
                 Retry
               </button>
@@ -160,10 +163,11 @@ export function SuggestionsPanel({
                   </p>
                   <div className="flex items-center justify-end mt-auto pt-1">
                     <button
+                      type="button"
                       onClick={() =>
                         onApply(s.actionPrompt, { suggestionId: s.id })
                       }
-                      className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-purple-600/25 hover:bg-purple-600/45 border border-purple-400/30 text-purple-200 hover:text-white transition-colors shadow-sm"
+                      className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-purple-600/25 hover:bg-purple-600/45 border border-purple-400/30 text-purple-200 hover:text-white transition-colors shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50"
                     >
                       Apply
                     </button>
@@ -179,9 +183,10 @@ export function SuggestionsPanel({
                 {suggestions.length === 1 ? "" : "s"}
               </p>
               <button
+                type="button"
                 onClick={() => canRegenerate() && generate()}
                 disabled={!canRegenerate()}
-                className="text-[11px] text-white/55 hover:text-white/90 underline decoration-dotted hover:decoration-solid disabled:opacity-30"
+                className="text-[11px] text-white/55 hover:text-white/90 underline decoration-dotted hover:decoration-solid disabled:opacity-30 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 rounded disabled:cursor-not-allowed"
               >
                 Generate again
               </button>

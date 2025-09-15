@@ -143,9 +143,10 @@ export function UserMenu() {
               {/* Menu Items */}
               <div className="py-1">
                 <button
+                  type="button"
                   onClick={handleTripHistory}
                   role="menuitem"
-                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15"
+                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15 focus:ring-2 focus:ring-purple-400/50"
                   ref={(el) => {
                     if (el) menuItemsRef.current[0] = el;
                   }}
@@ -156,8 +157,9 @@ export function UserMenu() {
                 </button>
 
                 <button
+                  type="button"
                   role="menuitem"
-                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15"
+                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15 focus:ring-2 focus:ring-purple-400/50"
                   ref={(el) => {
                     if (el) menuItemsRef.current[1] = el;
                   }}
@@ -170,9 +172,10 @@ export function UserMenu() {
                 <hr className="my-1 border-white/20" />
 
                 <button
+                  type="button"
                   onClick={signOut}
                   role="menuitem"
-                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15"
+                  className="w-full px-4 py-2 text-left text-white/80 hover:text-white hover:bg-white/10 flex items-center gap-3 transition-colors cursor-pointer focus:outline-none focus:bg-white/15 focus:ring-2 focus:ring-purple-400/50"
                   ref={(el) => {
                     if (el) menuItemsRef.current[2] = el;
                   }}

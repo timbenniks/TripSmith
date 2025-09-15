@@ -22,8 +22,9 @@ export function ErrorPanel() {
       {/* Indicator Button */}
       {!open && (
         <button
+          type="button"
           onClick={() => setOpen(true)}
-          className="group flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 px-3 py-1.5 shadow-lg ring-1 ring-white/10 text-white/80 hover:text-white hover:bg-white/15 transition"
+          className="group flex items-center gap-1 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 px-3 py-1.5 shadow-lg ring-1 ring-white/10 text-white/80 hover:text-white hover:bg-white/15 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-400/50"
           aria-expanded={open}
           aria-controls="error-panel"
         >
@@ -53,8 +54,9 @@ export function ErrorPanel() {
               <span className="font-medium tracking-wide">Recent Errors</span>
             </div>
             <button
+              type="button"
               onClick={() => setOpen(false)}
-              className="text-white/50 hover:text-white transition"
+              className="text-white/50 hover:text-white transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400/50 rounded"
               aria-label="Close error panel"
             >
               <X className="h-4 w-4" />
