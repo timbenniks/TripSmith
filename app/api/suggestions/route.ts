@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server';
 import { getServerClient } from '@/lib/supabase-server';
+
+// Use Edge Runtime for better performance (crypto is available in Edge)
+export const runtime = 'edge';
 import { jsonError } from '@/lib/api-errors';
-import { randomUUID } from 'crypto';
 import { buildDeterministicSeeds, consolidateSeedStrings } from '@/lib/suggestions-seeds';
 import { Suggestion } from '@/lib/types';
 
@@ -69,7 +71,7 @@ export async function POST(req: NextRequest) {
     if (seasonal.length) {
       const detail = truncate(seasonal.join('; '));
       suggestions.push({
-        id: randomUUID(),
+        id: crypto.randomUUID(),
         type: 'seasonal',
         title: 'Seasonal timing considerations',
         detail,
@@ -83,7 +85,7 @@ export async function POST(req: NextRequest) {
     if (etiquette.length) {
       const detail = truncate(etiquette.join('; '));
       suggestions.push({
-        id: randomUUID(),
+        id: crypto.randomUUID(),
         type: 'etiquette',
         title: 'Local etiquette basics',
         detail,
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
     if (transit.length) {
       const detail = truncate(transit.join('; '));
       suggestions.push({
-        id: randomUUID(),
+        id: crypto.randomUUID(),
         type: 'logistics',
         title: 'Transit pass optimization',
         detail,
@@ -110,7 +112,7 @@ export async function POST(req: NextRequest) {
     }
     if (suggestions.length < totalCap && destination) {
       suggestions.push({
-        id: randomUUID(),
+        id: crypto.randomUUID(),
         type: 'logistics',
         title: 'Add flight details',
         detail: 'Provide departure / return flight numbers & times to anchor itinerary timings.',

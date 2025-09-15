@@ -2,6 +2,45 @@ import { notFound } from "next/navigation";
 import { getServerClient } from "@/lib/supabase-server";
 import { ItineraryRenderer } from "@/components/itinerary-renderer";
 import { Card } from "@/components/ui/card";
+import { Metadata } from "next";
+
+// Generate metadata for shared trips
+// Cache public shares for 5 minutes since they're static
+export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const supabase = await getServerClient();
+
+  const { data } = await supabase.rpc("get_trip_share", {
+    p_token: token,
+  });
+
+  if (!data?.public_snapshot) {
+    return {
+      title: "Shared Trip Not Found - TripSmith",
+    };
+  }
+
+  const snap = data.public_snapshot;
+  return {
+    title: `${snap.name} - Shared Trip`,
+    description: `${snap.destination} travel itinerary${
+      snap.purpose ? ` for ${snap.purpose}` : ""
+    }${
+      snap.travel_dates?.formatted ? ` • ${snap.travel_dates.formatted}` : ""
+    }`,
+    openGraph: {
+      title: `${snap.name} - Shared Trip`,
+      description: `Travel itinerary for ${snap.destination}`,
+      type: "article",
+    },
+  };
+}
 
 type TripSnapshot = {
   id: string;
@@ -18,13 +57,14 @@ type TripSnapshot = {
 export default async function PublicSharePage({
   params,
 }: {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }) {
+  const { token } = await params;
   const supabase = await getServerClient();
 
   // Use secure RPC that is granted to anon
   const { data, error } = await supabase.rpc("get_trip_share", {
-    p_token: params.token,
+    p_token: token,
   });
   if (error || !data) {
     return notFound();

@@ -1,141 +1,95 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { useAuth } from "@/components/auth-provider";
-import { tripService, Trip } from "@/lib/trip-service";
+import { notFound, redirect } from "next/navigation";
+import { getServerClient } from "@/lib/supabase-server";
 import { MatureTripPage } from "@/components/trip-page/mature-trip-page";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { AnimatedBackground } from "@/components/animated-background";
+import { Trip } from "@/lib/trip-service";
+import { Metadata } from "next";
 
-export default function TripPage() {
-  const params = useParams();
-  const router = useRouter();
-  const tripId = params.tripId as string;
-  const { user } = useAuth();
+// Generate metadata for better SEO and social sharing
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ tripId: string }>;
+}): Promise<Metadata> {
+  const { tripId } = await params;
+  const supabase = await getServerClient();
 
-  const [trip, setTrip] = useState<Trip | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [hasStartedLoading, setHasStartedLoading] = useState(false);
-  const [windowDimensions, setWindowDimensions] = useState({
-    width: 1200,
-    height: 800,
-  });
-  const [mounted, setMounted] = useState(false);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setWindowDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-
-      const handleResize = () => {
-        setWindowDimensions({
-          width: window.innerWidth,
-          height: window.innerHeight,
-        });
-      };
-
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, []);
-
-  // Load trip data only when we have a user
-  useEffect(() => {
-    if (user && tripId && !hasStartedLoading) {
-      setHasStartedLoading(true);
-      const loadTrip = async () => {
-        try {
-          const tripData = await tripService.getTripById(tripId);
-
-          if (!tripData) {
-            setError("Trip not found");
-            return;
-          }
-
-          // Verify the trip belongs to the current user
-          if (tripData.user_id !== user.id) {
-            setError("Trip not found");
-            return;
-          }
-
-          setTrip(tripData);
-        } catch (err) {
-          console.error("Error loading trip:", err);
-          setError("Failed to load trip. Please try again.");
-        }
-      };
-
-      loadTrip();
-    }
-  }, [user, tripId, hasStartedLoading]);
-
-  const handleBackToTrips = () => {
-    router.push("/trips");
-  };
-
-  // Determine loading state and message
-  const isLoading =
-    (!user && !error) ||
-    (user && !hasStartedLoading) ||
-    (hasStartedLoading && !trip && !error);
-  const loadingMessage = "Loading your trip...";
-
-  // Show single loading state
-  if (isLoading) {
-    return (
-      <div className="h-screen flex flex-col relative overflow-hidden">
-        <AnimatedBackground
-          windowDimensions={windowDimensions}
-          mounted={mounted}
-        />
-        <div className="flex items-center justify-center h-full relative z-10">
-          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
-            <LoadingSpinner />
-            <p className="text-white/70 mt-4 text-center">{loadingMessage}</p>
-          </Card>
-        </div>
-      </div>
-    );
+  if (!user) {
+    return {
+      title: "Trip Not Found - TripSmith",
+    };
   }
+
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("name, destination, purpose, travel_dates")
+    .eq("id", tripId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!trip) {
+    return {
+      title: "Trip Not Found - TripSmith",
+    };
+  }
+
+  return {
+    title: `${trip.name} - TripSmith`,
+    description: `${trip.destination} trip${
+      trip.purpose ? ` for ${trip.purpose}` : ""
+    }${
+      trip.travel_dates?.formatted ? ` • ${trip.travel_dates.formatted}` : ""
+    }`,
+  };
+}
+
+export default async function TripPage({
+  params,
+}: {
+  params: Promise<{ tripId: string }>;
+}) {
+  const { tripId } = await params;
+  const supabase = await getServerClient();
+
+  // Server-side auth check
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/");
+  }
+
+  // Server-side trip fetch with ownership check
+  const { data: trip, error } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("id", tripId)
+    .eq("user_id", user.id) // Ensure ownership
+    .single();
 
   if (error || !trip) {
-    return (
-      <div className="h-screen flex flex-col relative overflow-hidden">
-        <AnimatedBackground
-          windowDimensions={windowDimensions}
-          mounted={mounted}
-        />
-        <div className="flex items-center justify-center h-full relative z-10">
-          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8 text-center">
-            <p className="text-red-400 mb-4">{error || "Trip not found"}</p>
-            <Button
-              onClick={handleBackToTrips}
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Trips
-            </Button>
-          </Card>
-        </div>
-      </div>
-    );
+    return notFound();
   }
 
-  // Only render MatureTripPage after trip data is loaded
-  if (!trip) {
-    return null;
-  }
+  // Convert to Trip type
+  const tripData: Trip = {
+    id: trip.id,
+    user_id: trip.user_id,
+    name: trip.name,
+    destination: trip.destination,
+    purpose: trip.purpose,
+    status: trip.status,
+    chat_history: trip.chat_history || [],
+    itinerary_data: trip.itinerary_data,
+    travel_dates: trip.travel_dates,
+    preferences: trip.preferences || {}, // Add missing preferences property
+    created_at: trip.created_at,
+    updated_at: trip.updated_at,
+  };
 
   // Convert trip data to the format expected by MatureTripPage
   const tripDetails = {
@@ -148,7 +102,7 @@ export default function TripPage() {
   return (
     <MatureTripPage
       tripId={tripId}
-      initialTrip={trip}
+      initialTrip={tripData}
       tripDetails={tripDetails}
     />
   );

@@ -8,10 +8,10 @@ import { jsonError, jsonOk } from '@/lib/api-errors';
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
   const started = Date.now();
-  const tripId = params.tripId;
+  const { tripId } = await params;
   if (!tripId) {
     return jsonError('INVALID_INPUT', 'tripId param required', 400);
   }

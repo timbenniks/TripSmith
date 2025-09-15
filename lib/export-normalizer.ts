@@ -83,19 +83,22 @@ function toId(prefix: string): string {
  *
  * Input is intentionally typed as `any` to be tolerant of slight schema drifts.
  */
-export function normalizeItineraryToEvents(input: any): NormalizedItinerary {
+export function normalizeItineraryToEvents(input: unknown): NormalizedItinerary {
   const events: ExportEvent[] = [];
 
+  // Type guard for itinerary input
+  const data = input as any; // Keep as any for now due to varied JSON structure
+
   const meta: NormalizedItineraryMeta = {
-    travelerName: safeString(input?.tripHeader?.travelerName),
-    destination: safeString(input?.tripHeader?.destination),
-    dateRangeText: safeString(input?.tripHeader?.dates),
-    lastUpdated: safeString(input?.tripHeader?.lastUpdated),
+    travelerName: safeString(data?.tripHeader?.travelerName),
+    destination: safeString(data?.tripHeader?.destination),
+    dateRangeText: safeString(data?.tripHeader?.dates),
+    lastUpdated: safeString(data?.tripHeader?.lastUpdated),
   };
 
   // Flights → Prefer date-only start; attempt to parse time from free-form strings if present
-  if (Array.isArray(input?.flights)) {
-    for (const flight of input.flights) {
+  if (Array.isArray(data?.flights)) {
+    for (const flight of data.flights) {
       const date = parseIsoDateOnly(flight?.date);
       if (!date) continue;
       const titleParts: string[] = [];
@@ -129,8 +132,8 @@ export function normalizeItineraryToEvents(input: any): NormalizedItinerary {
   }
 
   // Accommodation → All-day span from check-in to check-out
-  if (Array.isArray(input?.accommodation)) {
-    for (const stay of input.accommodation) {
+  if (Array.isArray(data?.accommodation)) {
+    for (const stay of data.accommodation) {
       const start = parseIsoDateOnly(stay?.checkIn);
       const end = parseIsoDateOnly(stay?.checkOut);
       if (!start) continue;
@@ -140,7 +143,7 @@ export function normalizeItineraryToEvents(input: any): NormalizedItinerary {
         title: titleBase,
         category: 'accommodation',
         start,
-        end,
+        end: end || undefined, // Convert null to undefined for type compatibility
         allDay: true,
         location: safeString(stay?.address),
       });
@@ -148,8 +151,8 @@ export function normalizeItineraryToEvents(input: any): NormalizedItinerary {
   }
 
   // Daily Activities → timestamped items; default to 1-hour duration when time is parseable
-  if (Array.isArray(input?.dailySchedule)) {
-    for (const item of input.dailySchedule) {
+  if (Array.isArray(data?.dailySchedule)) {
+    for (const item of data.dailySchedule) {
       const dateString = safeString(item?.date);
       const timeString = safeString(item?.time);
       if (!dateString) continue;

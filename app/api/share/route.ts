@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerClient } from "@/lib/supabase-server";
 
+// Use Edge Runtime for better cold start performance
+export const runtime = 'edge';
+
 type Body = {
   tripId: string;
   expiresAt?: string | null; // ISO timestamp

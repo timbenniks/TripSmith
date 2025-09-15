@@ -61,32 +61,78 @@ export async function GET(
         ];
       }
 
-      const icsEvent: EventAttributes = {
-        title: event.title,
-        start: startArray,
-        end: endArray,
-        description: [
-          event.notes && `Notes: ${event.notes}`,
-          event.location && `Location: ${event.location}`,
-          `Category: ${event.category}`,
-        ].filter(Boolean).join('\n'),
-        location: event.location,
-        uid: event.id,
-      };
+      // Create event with proper type structure based on whether we have an end time
+      let icsEvent: EventAttributes;
 
-      // Handle all-day events
       if (event.allDay) {
-        icsEvent.start = [
+        // All-day events use date arrays  
+        const startDate: [number, number, number] = [
           event.start.getFullYear(),
           event.start.getMonth() + 1,
           event.start.getDate(),
         ];
+
         if (event.end) {
-          icsEvent.end = [
+          const endDate: [number, number, number] = [
             event.end.getFullYear(),
             event.end.getMonth() + 1,
             event.end.getDate(),
           ];
+
+          icsEvent = {
+            title: event.title,
+            start: startDate,
+            end: endDate,
+            description: [
+              event.notes && `Notes: ${event.notes}`,
+              event.location && `Location: ${event.location}`,
+              `Category: ${event.category}`,
+            ].filter(Boolean).join('\n'),
+            location: event.location,
+            uid: event.id,
+          };
+        } else {
+          icsEvent = {
+            title: event.title,
+            start: startDate,
+            duration: { days: 1 }, // Default 1-day duration for all-day events
+            description: [
+              event.notes && `Notes: ${event.notes}`,
+              event.location && `Location: ${event.location}`,
+              `Category: ${event.category}`,
+            ].filter(Boolean).join('\n'),
+            location: event.location,
+            uid: event.id,
+          };
+        }
+      } else {
+        // Timed events use time arrays
+        if (endArray) {
+          icsEvent = {
+            title: event.title,
+            start: startArray,
+            end: endArray,
+            description: [
+              event.notes && `Notes: ${event.notes}`,
+              event.location && `Location: ${event.location}`,
+              `Category: ${event.category}`,
+            ].filter(Boolean).join('\n'),
+            location: event.location,
+            uid: event.id,
+          };
+        } else {
+          icsEvent = {
+            title: event.title,
+            start: startArray,
+            duration: { hours: 1 }, // Default 1-hour duration for timed events
+            description: [
+              event.notes && `Notes: ${event.notes}`,
+              event.location && `Location: ${event.location}`,
+              `Category: ${event.category}`,
+            ].filter(Boolean).join('\n'),
+            location: event.location,
+            uid: event.id,
+          };
         }
       }
 
@@ -107,11 +153,11 @@ export async function GET(
     // Return ICS as download
     const filename = `${normalized.meta.destination?.replace(/[^a-zA-Z0-9]/g, '_') || 'trip'}_itinerary.ics`;
 
-    return new NextResponse(icsContent, {
+    return new NextResponse(icsContent || '', {
       headers: {
         'Content-Type': 'text/calendar',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': Buffer.byteLength(icsContent, 'utf8').toString(),
+        'Content-Length': Buffer.byteLength(icsContent || '', 'utf8').toString(),
       },
     });
 
