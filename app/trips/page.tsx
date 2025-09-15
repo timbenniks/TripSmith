@@ -84,7 +84,7 @@ export default function TripsPage() {
 
   if (error) {
     return (
-      <div className="h-screen flex flex-col relative overflow-hidden">
+      <div className="h-full flex flex-col relative overflow-hidden">
         <AnimatedBackground
           windowDimensions={windowDimensions}
           mounted={mounted}
@@ -99,7 +99,7 @@ export default function TripsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
+    <div className="h-full flex flex-col relative overflow-hidden">
       <AnimatedBackground
         windowDimensions={windowDimensions}
         mounted={mounted}

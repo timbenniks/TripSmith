@@ -25,18 +25,18 @@ Plan trips through a conversational + structured hybrid flow: fast logistics cap
 
 ## 🚀 Next Phase Priorities
 
-### **F4: Multi-Provider Authentication**
+### **F4: Multi-Provider Authentication** ✅
 
 - **Goal**: Add Google OAuth as alternative login provider
 - **Value**: Broader user access, account linking flexibility
-- **Status**: Ready to start
+- **Status**: **COMPLETED** - Google OAuth live in production
 
 ### **F5: Analytics & Observability**
 
 - **Goal**: Instrument core user funnel and itinerary interactions
 - **Scope**: Plausible integration, custom events (trip_create, exports, shares)
 - **Value**: Data-driven product decisions, performance monitoring
-- **Status**: Blocked by F4 (identity consistency needed)
+- **Status**: **READY TO START** - F4 identity foundation complete
 
 ### **F6: Admin Dashboard**
 

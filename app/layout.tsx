@@ -6,6 +6,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { Suspense } from "react";
 import "./globals.css";
 import { ErrorPanel } from "@/components/error-panel";
+import { ConditionalFooter } from "@/components/conditional-footer";
 
 export const metadata: Metadata = {
   title: "TripSmith - AI Travel Planner",
@@ -19,9 +20,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="h-full">
       <body
-        className={`font-sans ${GeistSans.variable} ${GeistMono.variable} dark`}
+        className={`font-sans ${GeistSans.variable} ${GeistMono.variable} dark h-full`}
       >
         <Suspense fallback={null}>
           <AuthProvider>
@@ -32,9 +33,11 @@ export default function RootLayout({
             >
               Skip to main content
             </a>
-            <main id="main-content" role="main">
-              {children}
-            </main>
+            <ConditionalFooter>
+              <main id="main-content" role="main" className="h-full">
+                {children}
+              </main>
+            </ConditionalFooter>
             <ErrorPanel />
           </AuthProvider>
         </Suspense>

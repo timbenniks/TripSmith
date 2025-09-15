@@ -508,7 +508,7 @@ Please welcome me and let me know how you can help with my trip planning.`;
 
   return (
     <div
-      className="h-screen flex flex-col relative overflow-hidden"
+      className="h-full flex flex-col relative overflow-hidden"
       suppressHydrationWarning
     >
       <style jsx global>{`

@@ -6,6 +6,7 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import Link from "next/link";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -32,6 +33,17 @@ export function AuthModal({
               .supabase-auth-ui_ui button[data-provider="github"] svg path
             ) {
             fill: white !important;
+          }
+          :global(.supabase-auth-ui_ui button[data-provider="google"] svg) {
+            filter: none;
+          }
+          :global(.supabase-auth-ui_ui button[data-provider="google"]) {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #1f2937 !important;
+            border: rgba(255, 255, 255, 0.3) !important;
+          }
+          :global(.supabase-auth-ui_ui button[data-provider="google"]:hover) {
+            background: rgba(255, 255, 255, 1) !important;
           }
         `}</style>
         <Auth
@@ -72,7 +84,7 @@ export function AuthModal({
               anchor: "font-medium hover:underline transition-colors",
             },
           }}
-          providers={["github"]}
+          providers={["google", "github"]}
           onlyThirdPartyProviders={true}
           redirectTo={
             typeof window !== "undefined"
@@ -80,6 +92,24 @@ export function AuthModal({
               : undefined
           }
         />
+
+        {/* Legal Links */}
+        <div className="mt-4 text-center text-sm text-white/60">
+          By signing in, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="text-purple-300 hover:text-purple-200 underline"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="text-purple-300 hover:text-purple-200 underline"
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </div>
     );
   }
@@ -159,6 +189,17 @@ export function AuthModal({
             ) {
             fill: white !important;
           }
+          :global(.supabase-auth-ui_ui button[data-provider="google"] svg) {
+            filter: none;
+          }
+          :global(.supabase-auth-ui_ui button[data-provider="google"]) {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #1f2937 !important;
+            border: rgba(255, 255, 255, 0.3) !important;
+          }
+          :global(.supabase-auth-ui_ui button[data-provider="google"]:hover) {
+            background: rgba(255, 255, 255, 1) !important;
+          }
         `}</style>
         {/* Close button */}
         <Button
@@ -223,7 +264,7 @@ export function AuthModal({
               anchor: "font-medium hover:underline transition-colors",
             },
           }}
-          providers={["github"]}
+          providers={["google", "github"]}
           onlyThirdPartyProviders={true}
           redirectTo={
             typeof window !== "undefined"
@@ -231,6 +272,24 @@ export function AuthModal({
               : undefined
           }
         />
+
+        {/* Legal Links */}
+        <div className="mt-6 text-center text-sm text-white/60">
+          By signing in, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="text-purple-300 hover:text-purple-200 underline"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="text-purple-300 hover:text-purple-200 underline"
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </div>
     </div>
   );
