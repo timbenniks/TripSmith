@@ -17,6 +17,8 @@ import {
 } from "@/lib/streaming-utils";
 import { UiDirectivesPayload } from "@/lib/types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Input } from "@/components/ui/input";
+import { ManageSharesDialog } from "@/components/manage-shares-dialog";
 
 interface TripDetails {
   timezone: string;
@@ -53,6 +55,14 @@ export function MatureTripPage({
   const [showCompleteSuggestion, setShowCompleteSuggestion] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showManageShares, setShowManageShares] = useState(false);
+  const [shareExpiry, setShareExpiry] = useState<string>(""); // YYYY-MM-DD
+  const [createdShareExpiresAt, setCreatedShareExpiresAt] = useState<
+    string | null
+  >(null);
 
   // (Removed PDF test: deprecated PDF export layer)
 
@@ -222,9 +232,10 @@ export function MatureTripPage({
   };
 
   const handleShare = () => {
-    // TODO: Implement sharing functionality
-    console.log("Share functionality not yet implemented");
-    alert("Share feature coming soon!");
+    // Open the share dialog in "pre-create" mode so user can set expiry first
+    setShareUrl(null);
+    setShareExpiry("");
+    setShowShareDialog(true);
   };
 
   const handleNewMessage = (message: Message) => {
@@ -379,6 +390,155 @@ export function MatureTripPage({
         busy={isDeleting}
         onConfirm={handleDeleteConfirmed}
         onCancel={() => (!isDeleting ? setShowDeleteDialog(false) : null)}
+      />
+      <ConfirmDialog
+        open={showShareDialog}
+        title={shareUrl ? "Trip shared" : "Share trip"}
+        description={
+          shareUrl
+            ? "Share this read-only link. It shows a snapshot of your trip."
+            : "Optionally set an expiry date, then create your share link."
+        }
+        confirmLabel={
+          shareUrl ? "Copy link" : isSharing ? "Creating…" : "Create link"
+        }
+        cancelLabel="Close"
+        busy={isSharing}
+        onConfirm={async () => {
+          if (shareUrl) {
+            try {
+              await navigator.clipboard.writeText(shareUrl);
+            } catch {}
+            setShowShareDialog(false);
+            return;
+          }
+          // Create the share with optional expiry
+          if (isSharing) return;
+          setIsSharing(true);
+          try {
+            let expiresAt: string | null = null;
+            if (shareExpiry) {
+              const [y, m, d] = shareExpiry
+                .split("-")
+                .map((v) => parseInt(v, 10));
+              if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+                expiresAt = end.toISOString();
+              }
+            }
+            const res = await fetch("/api/share", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ tripId, expiresAt }),
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(
+                data?.error || `Share failed (status ${res.status})`
+              );
+            }
+            const data = (await res.json()) as {
+              url: string;
+              token: string;
+              expiresAt?: string | null;
+            };
+            setShareUrl(data.url);
+            setCreatedShareExpiresAt(data.expiresAt ?? null);
+          } catch (err) {
+            console.error("Share failed", err);
+            alert("Failed to create share link. Please try again.");
+          } finally {
+            setIsSharing(false);
+          }
+        }}
+        onCancel={() => setShowShareDialog(false)}
+      >
+        <div className="space-y-3">
+          {/* Expiry selector */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="share-expiry" className="sr-only">
+              Expiry date
+            </label>
+            <input
+              id="share-expiry"
+              type="date"
+              value={shareExpiry}
+              onChange={(e) => setShareExpiry(e.target.value)}
+              className="bg-white/10 text-white/80 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400/50 border border-white/20"
+              aria-label="Expiry date"
+            />
+            {shareExpiry && (
+              <button
+                type="button"
+                onClick={() => setShareExpiry("")}
+                className="px-3 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Link field (placeholder before creation) */}
+          <div>
+            <div className="flex items-center gap-2">
+              <Input
+                value={shareUrl || ""}
+                placeholder="Link will appear here after creating"
+                readOnly
+                onFocus={(e) => e.currentTarget.select()}
+                className="text-sm"
+                aria-label="Share link"
+              />
+              <button
+                type="button"
+                disabled={!shareUrl}
+                onClick={async () => {
+                  if (!shareUrl) return;
+                  try {
+                    await navigator.clipboard.writeText(shareUrl);
+                  } catch {}
+                }}
+                className="px-3 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Copy
+              </button>
+            </div>
+            {/* Expiry hint */}
+            <p className="text-xs text-white/50 mt-1">
+              {shareUrl
+                ? createdShareExpiresAt
+                  ? `Expires on ${new Date(
+                      createdShareExpiresAt
+                    ).toLocaleDateString()}`
+                  : "No expiry"
+                : shareExpiry
+                ? "If created now, link will expire at the end of that day"
+                : "Leave empty for no expiry"}
+            </p>
+          </div>
+
+          {/* Manage links entry */}
+          {shareUrl && (
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowShareDialog(false);
+                  setTimeout(() => setShowManageShares(true), 50);
+                }}
+                className="text-sm text-white/70 hover:text-white underline underline-offset-4"
+              >
+                Manage links
+              </button>
+            </div>
+          )}
+        </div>
+      </ConfirmDialog>
+
+      <ManageSharesDialog
+        tripId={tripId}
+        open={showManageShares}
+        onClose={() => setShowManageShares(false)}
       />
     </>
   );

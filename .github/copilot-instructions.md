@@ -111,6 +111,30 @@ We standardized authentication across the app using Supabase SSR cookies, simpli
 - Upgraded Next.js to 15.4.2
 - UI cleanup: removed delete overlay button from trips list items
 
+### Phase Complete: F3S Public Sharing (Links)
+
+We implemented public, read-only sharing with optional expiry and a simple manage flow. Email share is deferred.
+
+- Database: `trip_shares` table with RLS; unique `public_token`, `created_at`, nullable `expires_at`.
+- API routes:
+  - `POST /api/share` – Auth + ownership check; creates token and stores a normalized trip snapshot; optional expiry (end-of-day from native date input) supported.
+  - `GET /api/share?tripId=...` – Lists existing shares for the trip (owner-only) with absolute URLs.
+  - `DELETE /api/share?token=...` – Revokes a share link (owner-only).
+- Public page: `app/share/[token]/page.tsx` – SSR fetch via Supabase RPC returns snapshot; invalid/expired tokens 404; renders via `ItineraryRenderer`.
+- UI/UX:
+  - Share dialog on trip page: native `<input type="date">` for expiry; after creating, displays the URL with Copy and a subtle "Manage links" anchor. Confirm action adapts (Create vs Copy & Close).
+  - Manage Shares dialog: revoke-only; lists existing links with Copy and Revoke actions; Refresh supported. Creation resides in Share dialog.
+- URL origin resolution: prioritizes `NEXT_PUBLIC_SITE_URL` then `VERCEL_URL` then request headers (`x-forwarded-proto` + `x-forwarded-host`) to compute absolute share URLs.
+- A11y: dialogs use focus traps and ESC; labels + hints provided; no popover date picker to avoid layering issues.
+
+Anti-goals (current phase):
+
+- No email sending; no analytics yet; no affiliate redirects.
+
+Follow-ups (optional):
+
+- Toast feedback for Copy; "Open link" button; rate-limited email share.
+
 ## 🔧 Tech Stack & Architecture
 
 ### **Core Technologies**

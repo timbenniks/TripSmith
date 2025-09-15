@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ConfirmDialogProps {
@@ -14,6 +14,8 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   busy?: boolean;
   autoFocus?: "confirm" | "cancel";
+  children?: ReactNode;
+  hideCancel?: boolean;
 }
 
 // Lightweight accessible confirmation dialog (focus trap & ESC handling)
@@ -28,6 +30,8 @@ export function ConfirmDialog({
   onCancel,
   busy = false,
   autoFocus = "confirm",
+  children,
+  hideCancel = false,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const confirmBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -123,15 +127,18 @@ export function ConfirmDialog({
                 {description}
               </p>
             )}
+            {children && <div className="mb-4">{children}</div>}
             <div className="flex justify-end gap-3">
-              <button
-                ref={cancelBtnRef}
-                onClick={onCancel}
-                disabled={busy}
-                className="px-4 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-              >
-                {cancelLabel}
-              </button>
+              {!hideCancel && (
+                <button
+                  ref={cancelBtnRef}
+                  onClick={onCancel}
+                  disabled={busy}
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
+                >
+                  {cancelLabel}
+                </button>
+              )}
               <button
                 ref={confirmBtnRef}
                 onClick={onConfirm}

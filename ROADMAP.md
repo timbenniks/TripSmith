@@ -113,11 +113,17 @@ Decision Log:
 
 #### F3S Sharing
 
-Goal: Public read-only view + email share.
-Scope: Create `trip_shares` table (`id uuid pk`, `trip_id fk`, `public_token text unique`, `created_at`, `expires_at nullable`). Public route `/share/[token]` with static rendering + no auth write.
-Email: Simple transactional (stub) or console log in dev. Add rate limiting (per user 10/hr).
-Acceptance: Shareable token invalidated on trip delete; email includes correct URL; no PII beyond itinerary.
-Status: [NS]
+Goal: Public read-only share links (with optional expiry) and a basic manage flow. Email share is deferred.
+Scope (Delivered):
+
+- `trip_shares` table with RLS; unique `public_token`, `created_at`, optional `expires_at`.
+- API endpoints: `POST /api/share` (create), `GET /api/share?tripId=...` (list), `DELETE /api/share?token=...` (revoke).
+- Public SSR route: `/share/[token]` renders a read-only snapshot via Supabase RPC.
+- Share dialog in trip page: native date input for expiry; shows generated URL with Copy; link to Manage.
+- Manage Shares dialog: list + copy + revoke (revoke-only; creation lives in Share dialog).
+- Robust absolute URL origin resolution (env-first fallback to request headers).
+  Acceptance: Expired/invalid tokens 404; revoke removes access; URLs copyable; no PII beyond itinerary snapshot.
+  Status: [DONE]
 
 #### F3X Export Layer (PDF + ICS)
 
@@ -193,15 +199,29 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 - F2-FE-1 [F2] FE Extend itinerary renderer to show link icons (aria-label) [DONE]
 - F2-DOC-1 [F2] DOC Update architecture guide (link enrichment section) [DONE]
 
+### TD4 SSR Auth & Route Protection
+
+- TD4-SEC-1 [TD4] OPS Middleware SSR session refresh (bind cookies, call getUser, write back cookies) [DONE]
+- TD4-SEC-2 [TD4] BE Standardize API auth checks with getServerClient() + auth.getUser() (optional Bearer) [DONE]
+- TD4-SEC-3 [TD4] FE Remove client-side auth redirects/spinners from /trips pages [DONE]
+- TD4-SEC-4 [TD4] FE Add server-side gate for /trips via app/trips/layout.tsx [DONE]
+- TD4-SEC-5 [TD4] DOC Update architecture guide + file structure for SSR auth [DONE]
+- TD4-SEC-6 [TD4] BE Remove /api/auth/ping test endpoint [DONE]
+- TD4-OPS-2 [TD4] OPS Upgrade Next.js to 15.4.2 [DONE]
+- TD4-BE-4 [TD4] BE Protect Suggestions API with server-side auth check [DONE]
+
 ### F3 Trip Management
 
 - F3D-DB-1 [F3D] DB Ensure ON DELETE CASCADE covers related tables [NS]
 - F3D-FE-1 [F3D] FE Delete action + confirm modal + optimistic UI [DONE]
-- F3S-DB-1 [F3S] DB Create `trip_shares` table + index on token [NS]
-- F3S-BE-1 [F3S] BE Endpoint POST /api/share (create token) [NS]
-- F3S-BE-2 [F3S] BE Public route token lookup (read-only serialization) [NS]
-- F3S-FE-1 [F3S] FE Share UI (copy link, revoke) [NS]
-- F3S-FE-2 [F3S] FE Email share form + rate limit client handling [NS]
+- F3D-FE-2 [F3D] FE Remove dashboard delete overlay (delete within trip page) [DONE]
+- F3S-DB-1 [F3S] DB Create `trip_shares` table + index on token [DONE]
+- F3S-BE-1 [F3S] BE Endpoint POST /api/share (create token + snapshot + expiry) [DONE]
+- F3S-BE-2 [F3S] BE Public route `/share/[token]` SSR (read-only snapshot render via RPC) [DONE]
+- F3S-BE-3 [F3S] BE GET /api/share (list by tripId) + DELETE /api/share (revoke by token) [DONE]
+- F3S-FE-1 [F3S] FE Share dialog: native date input, create + show URL, Copy, link to Manage [DONE]
+- F3S-FE-2 [F3S] FE Manage shares dialog: list + copy + revoke (revoke-only) [DONE]
+- F3S-FE-3 [F3S] FE Email share form + rate limit client handling [NS]
 - F3X-BE-1 [F3X] BE Normalized itinerary event builder (pure) [NS]
 - F3X-BE-2 [F3X] BE PDF generator module (no heavy deps) [NS]
 - F3X-BE-3 [F3X] BE ICS generator (ics pkg) [NS]
@@ -215,7 +235,7 @@ Categories: FE, BE, DB, AI, OPS, QA, DOC, SEC
 
 ### F5 Analytics
 
-- F5-FE-1 [F5] FE Add Plausible script behind env+flag [NS]
+- F5-FE-1 [F5] FE Add Plausible script [NS]
 - F5-BE-1 [F5] BE Emit server events for advisory fetch & exports [NS]
 - F5-BE-2 [F5] BE Event util wrapper (debounce duplicate events) [NS]
 
