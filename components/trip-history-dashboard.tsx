@@ -93,7 +93,7 @@ export function TripHistoryDashboard({
 
   return (
     <div
-      className="container mx-auto px-4 py-8 max-w-7xl"
+      className="container mx-auto px-6 py-10 max-w-7xl"
       role="region"
       aria-labelledby="trip-history-heading"
     >
@@ -105,7 +105,7 @@ export function TripHistoryDashboard({
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden bg-black/20 backdrop-blur-xl border border-white/30 shadow-lg ring-1 ring-white/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 border">
               <Image
                 src="/images/tripsmith-logo.png"
                 alt="TripSmith logo"
@@ -132,7 +132,7 @@ export function TripHistoryDashboard({
           </div>
           <Link href="/">
             <Button
-              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-2xl ring-1 ring-white/20"
               aria-label="Create a new trip"
             >
               <Plus className="h-5 w-5 mr-2" aria-hidden="true" />
@@ -218,7 +218,7 @@ export function TripHistoryDashboard({
                   : "You haven't created any trips yet."}
               </p>
               <Link href="/">
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-2xl ring-1 ring-white/20">
                   <Plus className="h-5 w-5 mr-2" aria-hidden="true" />
                   Create your first trip
                 </Button>

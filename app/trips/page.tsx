@@ -65,46 +65,30 @@ export default function TripsPage() {
   // Show loading while trips are being loaded
   if (tripsLoading || !user) {
     return (
-      <div className="h-screen flex flex-col relative overflow-hidden">
-        <AnimatedBackground
-          windowDimensions={windowDimensions}
-          mounted={mounted}
-        />
-        <div className="flex items-center justify-center h-full relative z-10">
-          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
-            <LoadingSpinner />
-            <p className="text-white/70 mt-4 text-center">
-              Loading your trips...
-            </p>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+        <Card className="p-8 bg-black/20 backdrop-blur-sm border-white/10">
+          <LoadingSpinner />
+          <p className="text-white/70 mt-4 text-center">
+            Loading your trips...
+          </p>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-full flex flex-col relative overflow-hidden">
-        <AnimatedBackground
-          windowDimensions={windowDimensions}
-          mounted={mounted}
-        />
-        <div className="flex items-center justify-center h-full relative z-10">
-          <Card className="bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20 p-8">
-            <p className="text-red-400 text-center">{error}</p>
-          </Card>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex items-center justify-center">
+        <Card className="p-8 bg-black/20 backdrop-blur-sm border-white/10">
+          <p className="text-red-400 text-center">{error}</p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col relative overflow-hidden">
-      <AnimatedBackground
-        windowDimensions={windowDimensions}
-        mounted={mounted}
-      />
-      <div className="relative z-10 flex-1">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      <div className="relative z-10">
         <TripHistoryDashboard
           user={user}
           trips={trips}

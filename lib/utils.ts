@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
  * Standard glass morphism classes for consistent UI styling
  */
 export const glassStyles = {
-  card: "bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20",
+  card: "bg-gradient-to-br from-purple-950/30 to-slate-950/30 bg-black/20 backdrop-blur-2xl border-white/30 shadow-2xl ring-1 ring-white/20",
   panel: "bg-black/30 backdrop-blur-xl border-white/20 shadow-xl ring-1 ring-white/10",
   modal: "bg-black/40 backdrop-blur-3xl border-white/30 shadow-2xl ring-1 ring-white/20",
   hover: "hover:border-purple-400/50 transition-all duration-300"

@@ -302,7 +302,7 @@ export function MatureTripPage({
           />
 
           {/* Main Content - Two Panel Layout with proper height management */}
-          <div className="flex-1 flex min-h-0 relative w-full px-2 sm:px-4 lg:px-8">
+          <div className="flex-1 flex min-h-0 relative w-full">
             <div className="flex w-full max-w-[1700px] 2xl:max-w-[1800px] mx-auto min-h-0 gap-4 xl:gap-6">
               {/* Left Sidebar - Chat */}
               <div
@@ -311,7 +311,7 @@ export function MatureTripPage({
                 lg:w-[500px] xl:w-[600px] 2xl:w-[660px]
                 lg:min-w-[440px] lg:max-w-[700px] lg:flex-shrink-0
                 w-full
-                bg-black/20 backdrop-blur-2xl border-r border-white/30
+                
                 h-full overflow-hidden
               `}
                 role="complementary"
@@ -335,7 +335,6 @@ export function MatureTripPage({
                 ${showItinerary ? "block" : "hidden lg:block"}
                 lg:flex-1 lg:min-w-0 flex flex-col min-h-0
                 w-full h-full
-                bg-black/20 backdrop-blur-2xl
                 overflow-hidden
               `}
                 role="main"
