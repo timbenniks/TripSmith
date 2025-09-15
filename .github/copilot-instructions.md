@@ -97,6 +97,20 @@ Result: Lean, high-signal assistance enabling structured itinerary enrichment wi
 
 ---
 
+### Phase Complete: SSR Auth & Route Protection
+
+We standardized authentication across the app using Supabase SSR cookies, simplified the client surface, and enforced protection at the correct boundaries.
+
+- Centralized server Supabase client helper `getServerClient()` bound to Next cookies
+- Middleware refresh: reads/writes cookies and calls `auth.getUser()` early to keep sessions fresh
+- API routes enforce auth server-side via `auth.getUser()` (Authorization: Bearer optionally supported)
+- Server-side gate for all `/trips/*` pages via `app/trips/layout.tsx` with `redirect("/")` when unauthenticated
+- Removed `/api/auth/ping` test endpoint
+- Removed client-side auth redirects/spinners from `app/trips/page.tsx` and `app/trips/[tripId]/page.tsx`
+- Protected Suggestions API with server-side auth check
+- Upgraded Next.js to 15.4.2
+- UI cleanup: removed delete overlay button from trips list items
+
 ## 🔧 Tech Stack & Architecture
 
 ### **Core Technologies**
@@ -106,7 +120,7 @@ Result: Lean, high-signal assistance enabling structured itinerary enrichment wi
 - **3D Graphics**: Three.js for Earth globe visualization
 - **AI Integration**: OpenAI GPT-4 via Vercel AI SDK
 - **Database**: Supabase (PostgreSQL with real-time features)
-- **Authentication**: GitHub OAuth via Supabase Auth
+- **Authentication**: Supabase Auth (GitHub OAuth) with SSR cookie sessions
 - **Deployment**: Vercel (production-ready)
 
 ### **Database Schema & Integration**
@@ -350,11 +364,13 @@ These forms are presentational/controlled; no regeneration side-effects inside t
 ### **File Structure**
 
 ```
+middleware.ts                 # Supabase SSR session refresh
 app/
 ├── api/chat/route.ts         # AI streaming endpoint with system prompt
 ├── page.tsx                  # Dynamic import entry point
 ├── trips/
 │   ├── page.tsx             # Trip history dashboard
+│   ├── layout.tsx           # Server-side auth gate for /trips/*
 │   └── [tripId]/page.tsx    # Individual trip pages with clean URLs
 components/
 ├── suggestion-bubbles-bar.tsx   # Orchestrates suggestion UI using useSuggestionEngine
@@ -441,30 +457,72 @@ Establish a robust baseline (WCAG 2.1 AA-aligned) covering perceivable, operable
 
 ## 🔐 **Authentication & Security**
 
-### **GitHub OAuth Setup**
+### GitHub OAuth Setup
 
 - Supabase Auth with GitHub provider
 - Automatic user creation on first login
 - Row Level Security (RLS) enforces data isolation
 
-### **Authentication Patterns**
+### Authentication Patterns (SSR-first)
 
-````typescript
-## 🔐 Authentication & Security
+Use SSR cookie sessions with a single server-side gate for protected sections and server-side auth checks for API routes. The client hook (`useAuth`) is for UI state only, not navigation.
 
-### **GitHub OAuth Setup**
-- Supabase Auth with GitHub provider
-- Automatic user creation on first login
-- Row Level Security (RLS) enforces data isolation
+1. Server-side gate for all `/trips/*`
 
-### **Authentication Patterns**
-```typescript
-const { user, loading } = useAuth();
-if (!user) return <AuthModal />;
+```ts
+// app/trips/layout.tsx
+import { ReactNode } from "react";
+import { redirect } from "next/navigation";
+import { getServerClient } from "@/lib/supabase-server";
 
-// All /trips/* routes require authentication
-// RLS policies ensure users only see their own data
-````
+export default async function TripsLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const supabase = await getServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/");
+  return <>{children}</>;
+}
+```
+
+2. API routes: enforce auth with `getServerClient()`
+
+```ts
+// app/api/example/route.ts
+import { NextResponse } from "next/server";
+import { getServerClient } from "@/lib/supabase-server";
+
+export async function POST(req: Request) {
+  const supabase = await getServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // ...handle request
+}
+```
+
+3. Middleware session refresh
+
+```ts
+// middleware.ts (high level)
+// - Bind Supabase to request cookies
+// - Call auth.getUser() to refresh session
+// - Write back updated auth cookies
+export const config = {
+  matcher: ["/((?!_next|static|.*\\\\.(?:png|jpg|jpeg|svg|gif|ico|txt)$).*)"],
+};
+```
+
+Notes
+
+- Client-side redirects for `/trips/*` are removed; SSR layout is the canonical gate.
+- API routes may accept an Authorization: Bearer token (optional), but SSR cookie sessions are primary.
 
 ---
 
@@ -585,7 +643,7 @@ transition: opacity 1.5s ease-in-out;
 12. **Performance**: Framer-motion entrance animations removed on trip pages (use static rendering + lightweight transitions only)
 13. **3D Components**: Restrict heavy 3D visuals to homepage
 14. **Animation Coordination**: Use custom events + rAF for Earth/Stars sequencing
-15. **Auth Optimization**: Single `useAuth()` consumption per page boundary
+15. **Auth Optimization**: Use `useAuth()` for UI state only; gate `/trips/*` server-side via layout and validate API requests server-side.
 16. **Auto-Redirect Timing**: Delay redirect (~2s) post-create for perceived stability
 17. **Export Functionality**: Legacy PDF utils deprecated; centralize future export features server-side or dedicated module
 18. **Shared Utilities**: Align function signatures; update all importers together
@@ -647,6 +705,7 @@ We recently completed a comprehensive code refactoring that significantly improv
 - ✅ Runtime stability via deterministic suppression & explicit regeneration gating
 - ✅ Infinite render loop eliminated in suggestions engine via callback ref + hash gating
 - ✅ Future-ready for ranking, personalization, weather & budget modules
+- ✅ SSR auth standardized: middleware refresh, server-side page gate, API auth checks; removed client-side guards
 
 The codebase is now significantly more maintainable and provides a solid foundation for implementing Feature 3 and beyond.
 
